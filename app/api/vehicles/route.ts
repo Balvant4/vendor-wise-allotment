@@ -1,12 +1,10 @@
-import { withErrorHandler, apiSuccess, apiError, apiPaginated } from '@/lib/api-response';
-import { verifyAccessToken, getTokenFromRequest } from '@/lib/auth';
+import { withErrorHandler, apiPaginated } from '@/lib/api-response';
+import { optionalAuth } from '@/lib/auth';
 import { queryVehicles } from '@/server/queries/vehicle.queries';
 
-// GET /api/vehicles
+// GET /api/vehicles — public read access, same reasoning as /api/dashboard
 export const GET = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  verifyAccessToken(token);
+  optionalAuth(req);
 
   const url = new URL(req.url);
   const p   = url.searchParams;

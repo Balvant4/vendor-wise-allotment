@@ -90,17 +90,26 @@ class AuthService {
     clearCookies(res);
   }
 
-  async getMe(req: Request): Promise<object> {
+  async getMe(req: Request): Promise<object | null> {
     await connectDB();
 
     const token = getTokenFromRequest(req);
-    if (!token) throw new AppError('Authentication required', 401, 'NO_TOKEN');
+    // No token = guest user — return null instead of throwing 401.
+    // The AuthProvider on every page calls this on load; for public pages
+    // we don't want a 401 to trigger the axios refresh interceptor in a loop.
+    if (!token) return null;
 
-    const decoded = verifyAccessToken(token);
-    const user = await User.findById(decoded.id);
-    if (!user) throw new AppError('User not found', 404);
-
-    return user.toSafeObject();
+    try {
+      const decoded = verifyAccessToken(token);
+      const user = await User.findById(decoded.id);
+      if (!user) return null; // deleted user
+      return user.toSafeObject();
+    } catch {
+      // Expired or invalid token — return null so AuthProvider treats as guest.
+      // The client's axios interceptor already handles silent refresh for API calls;
+      // for this initial "who am I" call, null is the right answer.
+      return null;
+    }
   }
 }
 

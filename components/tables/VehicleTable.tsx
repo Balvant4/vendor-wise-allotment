@@ -19,29 +19,38 @@ const COLUMNS: Column[] = [
   { key: 'containerNo',  label: 'Container',    sortable: true },
   { key: 'transporter',  label: 'Transporter',  sortable: true },
   { key: 'division',     label: 'Division',     sortable: true },
-  { key: 'customer',     label: 'Customer' },
-  { key: 'customerType', label: 'Type' },
+  { key: 'customerName', label: 'Customer' },
   {
     key: 'isFix', label: 'Load Type',
     render: (r) => <Badge variant={r.isFix ? 'blue' : 'gray'}>{r.isFix ? 'Fix' : 'Non-Fix'}</Badge>,
   },
   {
+    key: 'isMapped', label: 'Mapped',
+    render: (r) => r.isMapped
+      ? <Badge variant="green">Yes</Badge>
+      : <Badge variant="gold">No</Badge>,
+  },
+  {
     key: 'diffHours', label: 'Duration', sortable: true,
-    render: (r) => (
-      <span className={`font-mono text-xs font-semibold ${r.isOver25h ? 'text-red' : 'text-green'}`}>
-        {fmtHours(r.diffHours)}
-      </span>
-    ),
+    render: (r) => r.hasIncompleteData
+      ? <span className="text-muted2 text-xs italic">—</span>
+      : (
+        <span className={`font-mono text-xs font-semibold ${r.isOver25h ? 'text-red' : 'text-green'}`}>
+          {fmtHours(r.diffHours)}
+        </span>
+      ),
   },
   {
     key: 'isOver25h', label: '>25H',
-    render: (r) => r.isOver25h
-      ? <Badge variant="red">Alert</Badge>
-      : <Badge variant="green">OK</Badge>,
+    render: (r) => r.hasIncompleteData
+      ? <Badge variant="gray">N/A</Badge>
+      : r.isOver25h
+        ? <Badge variant="red">Alert</Badge>
+        : <Badge variant="green">OK</Badge>,
   },
   {
-    key: 'reportingDate', label: 'Date', sortable: true,
-    render: (r) => <span className="text-muted text-xs">{fmtDate(r.reportingDate)}</span>,
+    key: 'wllWeighIn', label: 'Date', sortable: true,
+    render: (r) => <span className="text-muted text-xs">{fmtDate(r.wllWeighIn)}</span>,
   },
 ];
 

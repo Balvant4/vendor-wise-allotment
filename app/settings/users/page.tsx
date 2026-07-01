@@ -108,7 +108,7 @@ export default function UsersPage() {
 
   if (!can('VIEW_USERS')) {
     return (
-      <AppShell title="Users">
+      <AppShell title="Users" requireAuth>
         <div className="flex h-64 items-center justify-center">
           <p className="text-sm text-muted">You don&apos;t have permission to view this page.</p>
         </div>
@@ -119,7 +119,7 @@ export default function UsersPage() {
   const users = data ?? [];
 
   return (
-    <AppShell title="Users">
+    <AppShell title="Users" requireAuth>
       <div className="panel-card">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex items-center gap-2 mr-auto">

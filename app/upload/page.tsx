@@ -64,16 +64,15 @@ export default function UploadPage() {
   const uploads: UploadRecord[] = data?.data ?? [];
 
   // Drag & drop
-  const [dragging, setDragging]         = useState(false);
-  const [fixTransporters, setFixTrans]  = useState('BALAJI TRANSPORT,AADESH TRANSPORT,LAKSHMI TRANSPORT');
-  const [deleteId, setDeleteId]         = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files?.length) return;
     const file = files[0];
-    upload({ file, fixTransporters });
-  }, [upload, fixTransporters]);
+    upload({ file });
+  }, [upload]);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault(); setDragging(false);
@@ -81,7 +80,7 @@ export default function UploadPage() {
   };
 
   return (
-    <AppShell title="Upload">
+    <AppShell title="Upload" requireAuth>
       <div className="max-w-4xl space-y-4">
         {/* Dropzone */}
         <div className="panel-card">
@@ -122,18 +121,15 @@ export default function UploadPage() {
             </div>
           </div>
 
-          {/* Fix transporters input */}
-          <div className="mt-4">
-            <label className="block text-xs font-semibold text-muted mb-1.5">
-              Fix Transporters (comma-separated)
-            </label>
-            <input
-              value={fixTransporters}
-              onChange={(e) => setFixTrans(e.target.value)}
-              placeholder="TRANSPORTER A, TRANSPORTER B"
-              className="input-field font-mono text-xs"
-            />
-            <p className="mt-1 text-[10px] text-muted">These transporters will be flagged as Fix loads.</p>
+          {/* Fix / Non-Fix mapping info */}
+          <div className="mt-4 rounded-lg border border-line bg-panel2 p-3">
+            <p className="text-xs text-muted">
+              Fix / Non-Fix and transporter name cleanup are driven by the{' '}
+              <a href="/settings/transporters" className="text-gold hover:underline">
+                Transporter Master
+              </a>{' '}
+              table. Any transporter not yet mapped will be auto-added there for review after upload.
+            </p>
           </div>
         </div>
 

@@ -15,10 +15,9 @@ export function useUploads(page = 1) {
 export function useUploadFile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ file, fixTransporters }: { file: File; fixTransporters?: string }) => {
+    mutationFn: async ({ file }: { file: File }) => {
       const form = new FormData();
       form.append('file', file);
-      if (fixTransporters) form.append('fixTransporters', fixTransporters);
       const { data } = await api.post('/uploads', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });

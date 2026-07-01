@@ -1,6 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withErrorHandler, apiSuccess, apiError, apiPaginated, AppError } from '@/lib/api-response';
-import { verifyAccessToken, getTokenFromRequest, can } from '@/lib/auth';
+import { withErrorHandler, apiSuccess, apiPaginated, AppError } from '@/lib/api-response';
+import { requireAuth, optionalAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import Upload from '@/models/Upload';
 import { processUpload } from '@/features/uploads/services/upload.service';
@@ -13,11 +12,9 @@ const ALLOWED_TYPES = [
   'text/csv',
 ];
 
-// GET /api/uploads
+// GET /api/uploads — public read access (upload history is non-sensitive metadata)
 export const GET = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  verifyAccessToken(token);
+  optionalAuth(req);
   await connectDB();
 
   const url   = new URL(req.url);
@@ -34,15 +31,9 @@ export const GET = withErrorHandler(async (req: Request) => {
   return apiPaginated(data, { total, page, limit, totalPages: Math.ceil(total / limit) });
 });
 
-// POST /api/uploads
+// POST /api/uploads — gated: must be logged in with UPLOAD_FILES permission
 export const POST = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('UPLOAD_FILES', decoded.role)) {
-    throw new AppError('Insufficient permissions to upload files', 403, 'FORBIDDEN');
-  }
+  const decoded = requireAuth(req, 'UPLOAD_FILES');
 
   await connectDB();
 

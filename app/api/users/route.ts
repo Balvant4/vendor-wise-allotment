@@ -1,17 +1,13 @@
-import { withErrorHandler, apiSuccess, apiError, apiPaginated, AppError } from '@/lib/api-response';
-import { verifyAccessToken, getTokenFromRequest, can } from '@/lib/auth';
+import { withErrorHandler, apiSuccess, apiPaginated, AppError } from '@/lib/api-response';
+import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import User from '@/models/User';
-import { createUserSchema, updateUserSchema } from '@/server/validations/auth.validation';
+import { createUserSchema } from '@/server/validations/auth.validation';
 import mongoose from 'mongoose';
 
-// GET /api/users
+// GET /api/users — gated: only admin and manager
 export const GET = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('VIEW_USERS', decoded.role)) throw new AppError('Insufficient permissions', 403, 'FORBIDDEN');
+  requireAuth(req, 'VIEW_USERS');
 
   await connectDB();
   const url   = new URL(req.url);
@@ -34,13 +30,9 @@ export const GET = withErrorHandler(async (req: Request) => {
   return apiPaginated(data, { total, page, limit, totalPages: Math.ceil(total / limit) });
 });
 
-// POST /api/users
+// POST /api/users — gated: admin only
 export const POST = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('MANAGE_USERS', decoded.role)) throw new AppError('Insufficient permissions', 403, 'FORBIDDEN');
+  const decoded = requireAuth(req, 'MANAGE_USERS');
 
   await connectDB();
   const body = await req.json();

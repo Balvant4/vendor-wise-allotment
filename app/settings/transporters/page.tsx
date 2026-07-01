@@ -222,7 +222,7 @@ export default function TransportersPage() {
   // Permission check
   if (!can('VIEW_USERS')) {
     return (
-      <AppShell title="Transporter Master">
+      <AppShell title="Transporter Master" requireAuth>
         <div className="flex h-64 items-center justify-center">
           <p className="text-sm text-muted">Only admin and manager can access this page.</p>
         </div>
@@ -231,7 +231,7 @@ export default function TransportersPage() {
   }
 
   return (
-    <AppShell title="Transporter Master">
+    <AppShell title="Transporter Master" requireAuth>
       <div className="panel-card">
         {/* Header */}
         <div className="mb-4 flex flex-wrap items-center gap-3">

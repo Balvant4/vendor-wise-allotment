@@ -80,7 +80,7 @@ export default function AlertsPage() {
 
                 {/* Date */}
                 <div className="text-[10px] text-muted ml-auto whitespace-nowrap">
-                  {fmtDate(record.reportingDate)}
+                  {fmtDate(record.wllWeighIn)}
                 </div>
               </div>
             ))}

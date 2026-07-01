@@ -67,24 +67,43 @@ export interface UploadRecord {
 // ─── Vehicle ──────────────────────────────────────────────────────────────────
 export interface VehicleRecord {
   _id: string;
-  division: string;
-  customerType: string;
-  customer: string;
+  uniqueId: string;
+  // Raw columns from Excel (all 18)
+  documentNumber: string;
+  warehouseNumber: string;
+  endCustName: string;
   containerNo: string;
-  transporter: string;
   vehicleNo: string;
-  weighInDate?: string;
-  weighOutDate?: string;
+  gateInDate?: string;
+  exciseOutDate?: string;
+  gateExciseDiff?: string;
+  loadingStartTime?: string;
+  loadingEndTime?: string;
+  loadingTimeDiff?: string;
+  transporterRaw: string;
+  detentionReason?: string;
+  otherReason?: string;
+  customerName: string;
+  wllWeighIn?: string;
+  wllWeighOut?: string;
+  weighDiffRaw?: string;
+  // Cleaned / calculated fields
+  division: string;
+  transporter: string;
+  isFix: boolean;
+  isMapped: boolean;
   diffHours: number;
   diffStr?: string;
   isOver25h: boolean;
-  isFix: boolean;
-  reportingDate?: string;
+  hasIncompleteData: boolean;
   year: number;
   month: number;
   dayOfWeek: number;
+  // Meta
   uploadId: string;
+  sourceRow?: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

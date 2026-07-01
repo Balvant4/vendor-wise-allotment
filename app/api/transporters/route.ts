@@ -1,15 +1,16 @@
-import { withErrorHandler, apiSuccess, apiError, apiPaginated, AppError } from '@/lib/api-response';
-import { verifyAccessToken, getTokenFromRequest, can } from '@/lib/auth';
+import { withErrorHandler, apiSuccess, apiPaginated, AppError } from '@/lib/api-response';
+import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import TransporterMaster from '@/models/TransporterMaster';
 import { remapTransporter } from '@/features/uploads/services/upload.service';
 import mongoose from 'mongoose';
 
-// GET /api/transporters
+// GET /api/transporters — gated: this is admin/manager configuration data,
+// and the page that calls it (/settings/transporters) is already protected
+// at the route level in middleware.ts. Keeping the API gated too means a
+// guest can never see this even via a direct API call.
 export const GET = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  verifyAccessToken(token);
+  requireAuth(req, 'VIEW_USERS');
 
   await connectDB();
 
@@ -57,15 +58,9 @@ export const GET = withErrorHandler(async (req: Request) => {
   return apiPaginated(data, { total, page, limit, totalPages: Math.ceil(total / limit) });
 });
 
-// POST /api/transporters — add new mapping + auto remap existing records
+// POST /api/transporters — gated, add new mapping + auto remap existing records
 export const POST = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('VIEW_USERS', decoded.role)) {
-    throw new AppError('Only admin and manager can manage transporters', 403, 'FORBIDDEN');
-  }
+  const decoded = requireAuth(req, 'VIEW_USERS');
 
   await connectDB();
 

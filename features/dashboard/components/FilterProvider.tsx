@@ -11,10 +11,11 @@ interface FilterContextValue {
 
 const FilterContext = createContext<FilterContextValue | null>(null);
 
-const now = new Date();
+// Default to "All" — shows all uploaded data regardless of today's real-world date.
+// SAP exports are historical data, not necessarily from "this month".
 const defaultFilters: DashboardFilters = {
-  year:        String(now.getFullYear()),
-  month:       String(now.getMonth() + 1),
+  year:        '',
+  month:       '',
   division:    '',
   transporter: '',
   isFix:       '',

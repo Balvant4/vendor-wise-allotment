@@ -5,7 +5,8 @@ import { useFilters } from '@/features/dashboard/components/FilterProvider';
 import { useFilterOptions } from '@/features/dashboard/hooks/useDashboard';
 import { MONTHS } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 
 interface TopBarProps { title?: string }
 
@@ -13,12 +14,21 @@ export default function TopBar({ title = 'Dashboard' }: TopBarProps) {
   const { user } = useAuth();
   const { filters, setFilter } = useFilters();
   const { data: opts } = useFilterOptions();
+
   const [localSearch, setLocalSearch] = useState(filters.search ?? '');
   const debounced = useDebounce(localSearch, 400);
 
-  useEffect(() => { setFilter('search', debounced); }, [debounced]);
+  // Track previous debounced value so we only call setFilter when it actually changes.
+  // Without this guard, setFilter → state update → re-render → useEffect fires again → infinite loop.
+  const prevDebounced = useRef(debounced);
+  useEffect(() => {
+    if (debounced !== prevDebounced.current) {
+      prevDebounced.current = debounced;
+      setFilter('search', debounced);
+    }
+  }, [debounced, setFilter]);
 
-  const years     = opts?.years     ?? [new Date().getFullYear()];
+  const years     = opts?.years     ?? [];
   const divisions = opts?.divisions ?? [];
 
   return (
@@ -46,6 +56,7 @@ export default function TopBar({ title = 'Dashboard' }: TopBarProps) {
           onChange={(e) => setFilter('year', e.target.value)}
           className="fb-select h-7 text-xs"
         >
+          <option value="">All years</option>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
 
@@ -87,10 +98,20 @@ export default function TopBar({ title = 'Dashboard' }: TopBarProps) {
           <Bell size={13} />
         </button>
 
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20
-                        text-[11px] font-bold text-gold ring-1 ring-gold/30">
-          {user?.name?.[0]?.toUpperCase() ?? 'U'}
-        </div>
+        {user ? (
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20
+                          text-[11px] font-bold text-gold ring-1 ring-gold/30">
+            {user.name?.[0]?.toUpperCase() ?? 'U'}
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="flex h-7 items-center rounded-lg border border-gold/30 bg-gold/10
+                       px-2.5 text-[10px] font-semibold text-gold transition-all hover:bg-gold/20"
+          >
+            Sign In
+          </Link>
+        )}
       </div>
     </header>
   );

@@ -13,7 +13,7 @@ import type { VehicleRecord, PaginationMeta } from '@/types';
 export default function VehiclesPage() {
   const { filters } = useFilters();
   const [page, setPage]       = useState(1);
-  const [sortKey, setSortKey] = useState('reportingDate');
+  const [sortKey, setSortKey] = useState('wllWeighIn');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [isOver25h, setIsOver25h] = useState('');
   const [exporting, setExporting] = useState(false);

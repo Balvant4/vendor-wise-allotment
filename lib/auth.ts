@@ -100,3 +100,36 @@ export function can(permission: keyof typeof PERMISSIONS, role: UserRole): boole
 export function isRole(role: UserRole, ...roles: UserRole[]): boolean {
   return roles.includes(role);
 }
+
+// ─── Unified auth guard for Route Handlers ────────────────────────────────────
+// Throws an AppError-shaped object (status/code/message) that withErrorHandler
+// in lib/api-response.ts already knows how to convert into the right HTTP response.
+// Use this instead of repeating "get token -> verify -> check permission" in
+// every single route file.
+export function requireAuth(req: Request, permission?: keyof typeof PERMISSIONS): JwtPayload {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    throw { message: 'Authentication required', status: 401, code: 'NO_TOKEN' };
+  }
+
+  const decoded = verifyAccessToken(token); // throws TOKEN_EXPIRED / TOKEN_INVALID itself
+
+  if (permission && !can(permission, decoded.role)) {
+    throw { message: 'Insufficient permissions', status: 403, code: 'FORBIDDEN' };
+  }
+
+  return decoded;
+}
+
+// Returns the decoded user if a valid token is present, or null otherwise —
+// never throws. Use this on routes that should work for logged-out visitors
+// but want to personalize behavior when a user IS logged in.
+export function optionalAuth(req: Request): JwtPayload | null {
+  const token = getTokenFromRequest(req);
+  if (!token) return null;
+  try {
+    return verifyAccessToken(token);
+  } catch {
+    return null;
+  }
+}

@@ -40,7 +40,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <AppShell title="Settings">
+    <AppShell title="Settings" requireAuth>
       <div className="max-w-2xl space-y-4">
         {/* Profile */}
         <div className="panel-card">

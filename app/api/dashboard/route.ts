@@ -1,6 +1,6 @@
-import { withErrorHandler, apiSuccess, apiError } from '@/lib/api-response';
+import { withErrorHandler, apiSuccess } from '@/lib/api-response';
 import { dashboardService } from '@/server/services/dashboard.service';
-import { verifyAccessToken, getTokenFromRequest } from '@/lib/auth';
+import { optionalAuth } from '@/lib/auth';
 import type { DashboardFilters } from '@/types';
 
 function parseFilters(url: URL): DashboardFilters {
@@ -18,10 +18,11 @@ function parseFilters(url: URL): DashboardFilters {
 }
 
 // GET /api/dashboard?type=overview|kpis|alerts|filter-options
+// Public read access — dashboard analytics are visible to all visitors.
+// optionalAuth() doesn't block guests; it's only here in case we want to
+// personalize the response later (e.g. per-user saved filters).
 export const GET = withErrorHandler(async (req: Request) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  verifyAccessToken(token); // throws on invalid
+  optionalAuth(req);
 
   const url    = new URL(req.url);
   const type   = url.searchParams.get('type') ?? 'overview';

@@ -36,8 +36,8 @@ export async function queryVehicles(filters: VehicleQueryFilters = {}) {
   const limit  = Math.min(100, Number(filters.limit) || 50);
   const skip   = (page - 1) * limit;
 
-  const allowedSort = ['vehicleNo', 'transporter', 'division', 'diffHours', 'reportingDate', 'createdAt'];
-  const sortKey = allowedSort.includes(filters.sortKey ?? '') ? filters.sortKey! : 'reportingDate';
+  const allowedSort = ['vehicleNo', 'transporter', 'division', 'diffHours', 'wllWeighIn', 'createdAt'];
+  const sortKey = allowedSort.includes(filters.sortKey ?? '') ? filters.sortKey! : 'wllWeighIn';
   const sortDir = filters.sortDir === 'asc' ? 1 : -1;
 
   const [data, total] = await Promise.all([

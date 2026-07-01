@@ -19,7 +19,7 @@ api.interceptors.response.use(
     ) {
       original._retry = true;
       try {
-        await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        await axios.post('/api/auth?action=refresh', {}, { withCredentials: true });
         return api(original);
       } catch {
         if (typeof window !== 'undefined') {

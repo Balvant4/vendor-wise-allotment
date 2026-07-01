@@ -8,15 +8,22 @@ import TopBar from './TopBar';
 interface AppShellProps {
   children: React.ReactNode;
   title?: string;
+  /**
+   * Set true only for pages that must not render at all without a logged-in
+   * user (e.g. /upload, /settings/users, /settings/transporters). Most pages
+   * (dashboard, vehicles, alerts, division, vendors) are public — visitors
+   * can view data without an account, so this defaults to false.
+   */
+  requireAuth?: boolean;
 }
 
-export default function AppShell({ children, title }: AppShellProps) {
+export default function AppShell({ children, title, requireAuth = false }: AppShellProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
-  }, [user, loading, router]);
+    if (!loading && requireAuth && !user) router.replace('/login');
+  }, [user, loading, requireAuth, router]);
 
   if (loading) {
     return (
@@ -29,7 +36,10 @@ export default function AppShell({ children, title }: AppShellProps) {
     );
   }
 
-  if (!user) return null;
+  // Page explicitly requires auth and we have none — middleware should have
+  // already redirected, but this is the client-side fallback (e.g. for
+  // client-side navigation that doesn't re-run middleware).
+  if (requireAuth && !user) return null;
 
   return (
     <div className="flex min-h-screen bg-bg">

@@ -1,19 +1,13 @@
-import { withErrorHandler, apiSuccess, apiError, AppError } from '@/lib/api-response';
-import { verifyAccessToken, getTokenFromRequest, can } from '@/lib/auth';
+import { withErrorHandler, apiSuccess, AppError } from '@/lib/api-response';
+import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import TransporterMaster from '@/models/TransporterMaster';
 import { remapTransporter } from '@/features/uploads/services/upload.service';
 import mongoose from 'mongoose';
 
-// PATCH /api/transporters/:id — edit + auto remap
+// PATCH /api/transporters/:id — gated, edit + auto remap
 export const PATCH = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('VIEW_USERS', decoded.role)) {
-    throw new AppError('Only admin and manager can manage transporters', 403, 'FORBIDDEN');
-  }
+  const decoded = requireAuth(req, 'VIEW_USERS');
 
   await connectDB();
 
@@ -61,15 +55,9 @@ export const PATCH = withErrorHandler(async (req: Request, { params }: { params:
   );
 });
 
-// DELETE /api/transporters/:id
+// DELETE /api/transporters/:id — gated
 export const DELETE = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('VIEW_USERS', decoded.role)) {
-    throw new AppError('Only admin and manager can manage transporters', 403, 'FORBIDDEN');
-  }
+  const decoded = requireAuth(req, 'VIEW_USERS');
 
   await connectDB();
 
@@ -84,15 +72,9 @@ export const DELETE = withErrorHandler(async (req: Request, { params }: { params
   return apiSuccess({}, 'Transporter mapping deleted');
 });
 
-// PUT /api/transporters/:id — restore a soft-deleted mapping
+// PUT /api/transporters/:id — gated, restore a soft-deleted mapping
 export const PUT = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('VIEW_USERS', decoded.role)) {
-    throw new AppError('Only admin and manager can manage transporters', 403, 'FORBIDDEN');
-  }
+  const decoded = requireAuth(req, 'VIEW_USERS');
 
   await connectDB();
 

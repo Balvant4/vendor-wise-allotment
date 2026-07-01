@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Upload, Truck, AlertTriangle,
-  BarChart2, Settings, Users, LogOut, Activity,
+  BarChart2, Settings, Users, LogOut, Activity, LogIn,
 } from 'lucide-react';
 import { useAuth } from '@/features/authentication/components/AuthProvider';
 import { cn } from '@/lib/utils';
@@ -16,9 +16,9 @@ const navItems = [
   { href: '/upload',          label: 'Upload',       icon: Upload,   roles: ['admin','manager','associate'] },
   { href: '/division',        label: 'By Division',  icon: BarChart2 },
   { href: '/vendors',         label: 'Vendors',      icon: Activity },
-  { href: '/settings',              label: 'Settings',     icon: Settings },
-  { href: '/settings/transporters', label: 'Transporters', icon: Truck,   roles: ['admin', 'manager'] },
-  { href: '/settings/users',        label: 'Users',        icon: Users,   roles: ['admin'] },
+  { href: '/settings',              label: 'Settings',     icon: Settings, roles: ['admin','manager','associate','user'] },
+  { href: '/settings/transporters', label: 'Transporters', icon: Truck,    roles: ['admin', 'manager'] },
+  { href: '/settings/users',        label: 'Users',        icon: Users,    roles: ['admin'] },
 ] as const;
 
 export default function Sidebar() {
@@ -32,6 +32,8 @@ export default function Sidebar() {
     router.push('/login');
   };
 
+  // Without a user, role-gated items (Upload, Settings, Transporters, Users)
+  // are hidden automatically since isRole('') never matches any real role.
   const filtered = navItems.filter(
     (item) => !('roles' in item) || item.roles.some((r) => isRole(r))
   );
@@ -72,24 +74,37 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* User footer */}
+      {/* User footer — shows real identity + logout when signed in,
+          or a Sign In prompt for guests browsing public pages */}
       <div className="border-t border-line p-3">
-        <div className="mb-2 flex items-center gap-2 rounded-lg bg-panel2 px-2.5 py-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20 text-[11px] font-bold text-gold">
-            {user?.name?.[0]?.toUpperCase() ?? 'U'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="truncate text-xs font-semibold text-text">{user?.name ?? 'User'}</div>
-            <div className="truncate text-[10px] capitalize text-muted">{user?.role}</div>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-muted
-                     transition-all hover:bg-red/10 hover:text-red"
-        >
-          <LogOut size={13} /> Logout
-        </button>
+        {user ? (
+          <>
+            <div className="mb-2 flex items-center gap-2 rounded-lg bg-panel2 px-2.5 py-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20 text-[11px] font-bold text-gold">
+                {user.name?.[0]?.toUpperCase() ?? 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="truncate text-xs font-semibold text-text">{user.name}</div>
+                <div className="truncate text-[10px] capitalize text-muted">{user.role}</div>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-muted
+                         transition-all hover:bg-red/10 hover:text-red"
+            >
+              <LogOut size={13} /> Logout
+            </button>
+          </>
+        ) : (
+          <Link
+            href="/login"
+            className="flex items-center justify-center gap-2 rounded-lg bg-gold/15 px-3 py-2
+                       text-xs font-semibold text-gold ring-1 ring-gold/30 transition-all hover:bg-gold/25"
+          >
+            <LogIn size={13} /> Sign In
+          </Link>
+        )}
       </div>
     </aside>
   );

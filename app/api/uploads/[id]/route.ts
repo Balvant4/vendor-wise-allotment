@@ -1,18 +1,12 @@
-import { withErrorHandler, apiSuccess, apiError, AppError } from '@/lib/api-response';
-import { verifyAccessToken, getTokenFromRequest, can } from '@/lib/auth';
+import { withErrorHandler, apiSuccess, AppError } from '@/lib/api-response';
+import { requireAuth, optionalAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import Upload from '@/models/Upload';
 import VehicleRecord from '@/models/VehicleRecord';
 
-// DELETE /api/uploads/:id — permanently delete upload + all its vehicle records
+// DELETE /api/uploads/:id — gated: must be admin (permanently deletes data)
 export const DELETE = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  const decoded = verifyAccessToken(token);
-
-  if (!can('DELETE_UPLOADS', decoded.role)) {
-    throw new AppError('Only admins can delete uploads', 403, 'FORBIDDEN');
-  }
+  requireAuth(req, 'DELETE_UPLOADS');
 
   await connectDB();
   const upload = await Upload.findById(params.id);
@@ -30,11 +24,9 @@ export const DELETE = withErrorHandler(async (req: Request, { params }: { params
   );
 });
 
-// GET /api/uploads/:id — fetch single upload status
+// GET /api/uploads/:id — public read access
 export const GET = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
-  const token = getTokenFromRequest(req);
-  if (!token) return apiError('Authentication required', 401, 'NO_TOKEN');
-  verifyAccessToken(token);
+  optionalAuth(req);
 
   await connectDB();
   const upload = await Upload.findById(params.id).populate('createdBy', 'name email').lean();

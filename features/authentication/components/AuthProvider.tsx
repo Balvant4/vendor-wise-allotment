@@ -23,7 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchMe = useCallback(async () => {
     try {
       const { data } = await api.get('/auth');
-      setUser(data.data.user);
+      // Server returns { data: { user: AuthUser | null } }
+      // user is null for guests, an object for authenticated users
+      setUser(data?.data?.user ?? null);
     } catch {
       setUser(null);
     } finally {

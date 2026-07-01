@@ -24,7 +24,7 @@ function buildMatch(filters: DashboardFilters = {}): Record<string, unknown> {
     const dateRange: Record<string, Date> = {};
     if (filters.dateFrom) dateRange.$gte = new Date(filters.dateFrom);
     if (filters.dateTo)   dateRange.$lte = new Date(filters.dateTo + 'T23:59:59');
-    match.reportingDate = dateRange;
+    match.wllWeighIn = dateRange;
   }
   return match;
 }
@@ -91,11 +91,11 @@ class DashboardService {
     const match = buildMatch(filters);
     const since = new Date();
     since.setDate(since.getDate() - days);
-    match.reportingDate = { ...(match.reportingDate as object ?? {}), $gte: since };
+    match.wllWeighIn = { ...(match.wllWeighIn as object ?? {}), $gte: since };
 
     return VehicleRecord.aggregate([
       { $match: match },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$reportingDate' } }, count: { $sum: 1 }, over25: { $sum: { $cond: ['$isOver25h', 1, 0] } } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$wllWeighIn' } }, count: { $sum: 1 }, over25: { $sum: { $cond: ['$isOver25h', 1, 0] } } } },
       { $sort: { _id: 1 } },
       { $project: { _id: 0, date: '$_id', count: 1, over25: 1 } },
     ]);
