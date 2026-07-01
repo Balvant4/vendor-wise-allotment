@@ -121,10 +121,10 @@ export default function VehicleTable({
               className={`transition-colors ${i % 2 === 0 ? 'bg-bg' : 'bg-panel/40'} ${row.isOver25h ? 'ring-1 ring-red/10' : ''} hover:bg-panel2`}
             >
               {COLUMNS.map((col) => (
-                <td key={col.key} className="table-td">
+               <td key={col.key} className="table-td">
                   {col.render
                     ? col.render(row)
-                    : <span className="text-xs text-muted font-mono">{String((row as Record<string, unknown>)[col.key] ?? '—')}</span>
+                    : <span className="text-xs text-muted font-mono">{String((row as unknown as Record<string, unknown>)[col.key] ?? '—')}</span>
                   }
                 </td>
               ))}

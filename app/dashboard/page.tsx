@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const { filters } = useFilters();
   const { data, isLoading } = useDashboardOverview(filters);
 
-  const kpis          = data?.kpis          ?? {} as ReturnType<typeof useDashboardOverview>['data'] extends infer D ? D extends object ? D['kpis'] : never : never;
+ const kpis          = data?.kpis          ?? ({} as NonNullable<typeof data>['kpis']);
   const monthly       = data?.monthly       ?? [];
   const daily         = data?.daily         ?? [];
   const byDivision    = data?.byDivision    ?? [];

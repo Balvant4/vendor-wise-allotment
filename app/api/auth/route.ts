@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { apiSuccess, withErrorHandler } from '@/lib/api-response';
+import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response';
 import { authService } from '@/server/services/auth.service';
 import { loginSchema } from '@/server/validations/auth.validation';
 
