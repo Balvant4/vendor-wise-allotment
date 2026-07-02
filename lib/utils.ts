@@ -74,3 +74,10 @@ export const getErrorMessage = (err: unknown): string => {
 };
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+// Escapes regex special characters so user-typed search text (which may
+// contain parentheses, dots, etc. — e.g. a container number) can be safely
+// passed to `new RegExp()` without throwing on invalid patterns or opening
+// up ReDoS-style crafted input on public, unauthenticated search endpoints.
+export const escapeRegex = (str: string): string =>
+  str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

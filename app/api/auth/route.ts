@@ -2,9 +2,16 @@ import { NextResponse } from 'next/server';
 import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response';
 import { authService } from '@/server/services/auth.service';
 import { loginSchema } from '@/server/validations/auth.validation';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const ACCESS_TOKEN_MAX_AGE  = 15 * 60;          // 15 minutes — matches JWT_EXPIRES_IN default
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days — matches JWT_REFRESH_EXPIRES_IN default
+
+// 10 attempts per 15 minutes per IP. Deliberately keyed on IP only (not
+// IP+email) so an attacker can't dodge the limit by cycling through emails
+// against the same IP.
+const LOGIN_LIMIT = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 // Copies Set-Cookie headers from a response that has cookies set on it (`source`)
 // onto a fresh apiSuccess() response (`target`). Needed because the cookie-setting
@@ -41,6 +48,17 @@ export const POST = withErrorHandler(async (req: Request) => {
   }
 
   // Default: login
+  const ip = getClientIp(req);
+  const limitResult = rateLimit(`login:${ip}`, LOGIN_LIMIT, LOGIN_WINDOW_MS);
+  if (!limitResult.allowed) {
+    const retryAfterSec = Math.ceil((limitResult.resetAt - Date.now()) / 1000);
+    return apiError(
+      `Too many login attempts. Please try again in ${Math.ceil(retryAfterSec / 60)} minute(s).`,
+      429,
+      'RATE_LIMITED'
+    );
+  }
+
   const body = await req.json();
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {

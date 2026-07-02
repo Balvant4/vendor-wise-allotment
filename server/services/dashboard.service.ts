@@ -1,5 +1,6 @@
 import connectDB from '@/database/connection';
 import VehicleRecord from '@/models/VehicleRecord';
+import { escapeRegex } from '@/lib/utils';
 import type {
   DashboardFilters,
   DashboardKPIs,
@@ -8,6 +9,8 @@ import type {
   DivisionStats,
   TransporterStats,
   DashboardOverview,
+  DivisionMonthlyTrend,
+  TransporterMonthlyTrend,
   VehicleRecord as VehicleRecordType,
 } from '@/types';
 
@@ -16,7 +19,7 @@ function buildMatch(filters: DashboardFilters = {}): Record<string, unknown> {
   if (filters.year)        match.year = Number(filters.year);
   if (filters.month)       match.month = Number(filters.month);
   if (filters.division)    match.division = filters.division.toUpperCase();
-  if (filters.transporter) match.transporter = new RegExp(filters.transporter, 'i');
+  if (filters.transporter) match.transporter = new RegExp(escapeRegex(filters.transporter), 'i');
   if (filters.isFix !== undefined && filters.isFix !== '') {
     match.isFix = filters.isFix === 'true';
   }
@@ -127,9 +130,32 @@ class DashboardService {
     return VehicleRecord.find(match).sort({ diffHours: -1 }).limit(500).lean() as unknown as VehicleRecordType[];
   }
 
+  // Last few months of volume per division — powers the mini trend chart
+  // on each division card. Kept lightweight (division + year/month + count only).
+  async getDivisionMonthlyTrend(filters: DashboardFilters = {}): Promise<DivisionMonthlyTrend[]> {
+    await connectDB();
+    return VehicleRecord.aggregate([
+      { $match: buildMatch(filters) },
+      { $group: { _id: { division: '$division', year: '$year', month: '$month' }, count: { $sum: 1 } } },
+      { $sort: { '_id.division': 1, '_id.year': 1, '_id.month': 1 } },
+      { $project: { _id: 0, division: '$_id.division', year: '$_id.year', month: '$_id.month', count: 1 } },
+    ]);
+  }
+
+  // Same idea, per transporter — powers vendor card sparklines.
+  async getTransporterMonthlyTrend(filters: DashboardFilters = {}): Promise<TransporterMonthlyTrend[]> {
+    await connectDB();
+    return VehicleRecord.aggregate([
+      { $match: buildMatch(filters) },
+      { $group: { _id: { transporter: '$transporter', year: '$year', month: '$month' }, count: { $sum: 1 } } },
+      { $sort: { '_id.transporter': 1, '_id.year': 1, '_id.month': 1 } },
+      { $project: { _id: 0, transporter: '$_id.transporter', year: '$_id.year', month: '$_id.month', count: 1 } },
+    ]);
+  }
+
   async getFullOverview(filters: DashboardFilters = {}): Promise<DashboardOverview> {
     await connectDB();
-    const [kpis, monthly, daily, byDivision, byTransporter, byDayOfWeek] = await Promise.all([
+    const [kpis, monthly, daily, byDivision, byTransporter, byDayOfWeek, divisionMonthly, transporterMonthly] = await Promise.all([
       this.getKPIs(filters),
       this.getMonthlyTrend(filters),
       this.getDailyTrend(filters),
@@ -141,8 +167,10 @@ class DashboardService {
         { $sort: { _id: 1 } },
         { $project: { _id: 0, dayOfWeek: '$_id', count: 1 } },
       ]),
+      this.getDivisionMonthlyTrend(filters),
+      this.getTransporterMonthlyTrend(filters),
     ]);
-    return { kpis, monthly, daily, byDivision, byTransporter, byDayOfWeek };
+    return { kpis, monthly, daily, byDivision, byTransporter, byDayOfWeek, divisionMonthly, transporterMonthly };
   }
 
   async getFilterOptions(): Promise<Record<string, unknown[]>> {

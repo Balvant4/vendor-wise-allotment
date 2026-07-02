@@ -1,5 +1,6 @@
 import { type LucideIcon } from 'lucide-react';
 import { cn, fmtNum } from '@/lib/utils';
+import CountUpNumber from './CountUpNumber';
 
 const colorMap = {
   gold:   { ring: 'ring-gold/20',   bg: 'bg-gold/10',   text: 'text-gold',   dot: 'bg-gold'   },
@@ -47,7 +48,9 @@ export default function KpiCard({
           </div>
         )}
       </div>
-      <div className={cn('text-2xl font-bold font-mono', c.text)}>{fmtNum(value)}</div>
+      <div className={cn('text-2xl font-bold font-mono', c.text)}>
+        <CountUpNumber value={value} formatter={fmtNum as (n: number) => string} />
+      </div>
       {sub && <div className="mt-1 text-[10px] text-muted">{sub}</div>}
     </div>
   );

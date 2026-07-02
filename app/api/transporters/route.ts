@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import TransporterMaster from '@/models/TransporterMaster';
 import { remapTransporter } from '@/features/uploads/services/upload.service';
+import { escapeRegex } from '@/lib/utils';
 import mongoose from 'mongoose';
 
 // GET /api/transporters — gated: this is admin/manager configuration data,
@@ -25,9 +26,10 @@ export const GET = withErrorHandler(async (req: Request) => {
 
   const filter: Record<string, unknown> = {};
   if (search) {
+    const safe = escapeRegex(search);
     filter.$or = [
-      { originalName: new RegExp(search, 'i') },
-      { standardName: new RegExp(search, 'i') },
+      { originalName: new RegExp(safe, 'i') },
+      { standardName: new RegExp(safe, 'i') },
     ];
   }
   if (isFix === 'true')  filter.isFix = true;

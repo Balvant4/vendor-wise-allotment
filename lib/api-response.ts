@@ -30,7 +30,6 @@ export class AppError extends Error {
 }
 
 // ─── Route error handler wrapper ──────────────────────────────────────────────
-// ─── Route error handler wrapper ──────────────────────────────────────────────
 export function withErrorHandler<Ctx = { params?: Record<string, string> }>(
   handler: (req: Request, ctx: Ctx) => Promise<NextResponse>
 ) {

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Upload, Truck, AlertTriangle,
-  BarChart2, Settings, Users, LogOut, Activity, LogIn,
+  BarChart2, Settings, Users, LogOut, Activity, LogIn, X, Package,
 } from 'lucide-react';
 import { useAuth } from '@/features/authentication/components/AuthProvider';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,12 @@ const navItems = [
   { href: '/settings/users',        label: 'Users',        icon: Users,    roles: ['admin'] },
 ] as const;
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, logout, isRole } = useAuth();
@@ -38,17 +43,24 @@ export default function Sidebar() {
     (item) => !('roles' in item) || item.roles.some((r) => isRole(r))
   );
 
-  return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex w-56 flex-col border-r border-line bg-panel">
-      {/* Logo */}
+  const content = (
+    <>
+      {/* Logo / Branding */}
       <div className="flex items-center gap-2.5 border-b border-line px-4 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold/15 ring-1 ring-gold/30">
-          <Truck size={16} className="text-gold" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/15 ring-1 ring-gold/30">
+          <Package size={16} className="text-gold" />
         </div>
-        <div>
-          <div className="text-xs font-bold text-text leading-tight">Vendor Control</div>
-          <div className="text-[10px] text-muted">Movement Tower</div>
+        <div className="min-w-0">
+          <div className="truncate text-xs font-bold text-text leading-tight">Welspun Living</div>
+          <div className="truncate text-[10px] text-muted">Export Control Tower</div>
         </div>
+        <button
+          onClick={onClose}
+          className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:text-text lg:hidden"
+          aria-label="Close menu"
+        >
+          <X size={16} />
+        </button>
       </div>
 
       {/* Nav */}
@@ -59,6 +71,7 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onClose}
               className={cn(
                 'flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-all',
                 active
@@ -106,6 +119,34 @@ export default function Sidebar() {
           </Link>
         )}
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop — permanent sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r border-line bg-panel lg:flex">
+        {content}
+      </aside>
+
+      {/* Mobile — off-canvas drawer + backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 z-50 lg:hidden transition-opacity duration-200',
+          mobileOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        )}
+      >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <aside
+          className={cn(
+            'absolute inset-y-0 left-0 flex w-64 max-w-[85vw] flex-col border-r border-line bg-panel',
+            'transition-transform duration-200',
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          {content}
+        </aside>
+      </div>
+    </>
   );
 }

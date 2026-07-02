@@ -153,6 +153,20 @@ export interface TransporterStats {
   violationRate: number;
 }
 
+export interface DivisionMonthlyTrend {
+  division: string;
+  year: number;
+  month: number;
+  count: number;
+}
+
+export interface TransporterMonthlyTrend {
+  transporter: string;
+  year: number;
+  month: number;
+  count: number;
+}
+
 export interface DashboardOverview {
   kpis: DashboardKPIs;
   monthly: MonthlyTrend[];
@@ -160,6 +174,8 @@ export interface DashboardOverview {
   byDivision: DivisionStats[];
   byTransporter: TransporterStats[];
   byDayOfWeek: { dayOfWeek: number; count: number }[];
+  divisionMonthly: DivisionMonthlyTrend[];
+  transporterMonthly: TransporterMonthlyTrend[];
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────

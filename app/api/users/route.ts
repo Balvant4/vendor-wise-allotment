@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import User from '@/models/User';
 import { createUserSchema } from '@/server/validations/auth.validation';
+import { escapeRegex } from '@/lib/utils';
 import mongoose from 'mongoose';
 
 // GET /api/users — gated: only admin and manager
@@ -17,10 +18,13 @@ export const GET = withErrorHandler(async (req: Request) => {
   const search = url.searchParams.get('search');
 
   const match: Record<string, unknown> = {};
-  if (search) match.$or = [
-    { name: new RegExp(search, 'i') },
-    { email: new RegExp(search, 'i') },
-  ];
+  if (search) {
+    const safe = escapeRegex(search);
+    match.$or = [
+      { name: new RegExp(safe, 'i') },
+      { email: new RegExp(safe, 'i') },
+    ];
+  }
 
   const [data, total] = await Promise.all([
     User.find(match).sort({ createdAt: -1 }).skip(skip).limit(limit).select('-password -refreshTokens'),

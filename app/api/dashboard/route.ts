@@ -39,6 +39,10 @@ export const GET = withErrorHandler(async (req: Request) => {
       return apiSuccess(await dashboardService.getByDivision(filters));
     case 'transporter':
       return apiSuccess(await dashboardService.getByTransporter(filters));
+    case 'division-monthly':
+      return apiSuccess(await dashboardService.getDivisionMonthlyTrend(filters));
+    case 'transporter-monthly':
+      return apiSuccess(await dashboardService.getTransporterMonthlyTrend(filters));
     case 'alerts':
       return apiSuccess(await dashboardService.getAlerts(filters));
     case 'filter-options':

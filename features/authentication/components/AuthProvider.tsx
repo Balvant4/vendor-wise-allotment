@@ -35,14 +35,13 @@ function setCachedUser(user: AuthUser | null): void {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Initialise from sessionStorage so client-side navigations never start
-  // with user=null — the cached value is set instantly before any render.
-  const cached = typeof window !== 'undefined' ? getCachedUser() : null;
-
-  const [user, setUserState]  = useState<AuthUser | null>(cached);
-  // If we already have a cached user, start with loading=false so
-  // AppShell never shows the spinner on client-side navigation.
-  const [loading, setLoading] = useState<boolean>(cached === null);
+  // Server and client must render identically on the very first pass, so we
+  // always start from the same neutral state (user=null, loading=true) here.
+  // The sessionStorage cache is only read inside a useEffect below — effects
+  // never run during server rendering or during the client's first paint,
+  // only after hydration completes — so it can never cause a mismatch.
+  const [user, setUserState]  = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const fetchedRef = useRef(false);
 
   const setUser = (u: AuthUser | null) => {
@@ -63,13 +62,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Always verify with the server once per browser session,
-    // but only if we haven't already done so (avoids double-fetching
-    // on React StrictMode double-mount in development).
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchMe();
+    // Runs once per browser session (guarded against React StrictMode's
+    // double-mount in development). First apply any cached user instantly
+    // so navigation feels immediate, then verify with the server — this is
+    // the post-hydration equivalent of the old synchronous cache read.
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    const cached = getCachedUser();
+    if (cached) {
+      setUserState(cached);
+      setLoading(false);
     }
+    fetchMe();
   }, [fetchMe]);
 
   const login = async (email: string, password: string): Promise<AuthUser> => {

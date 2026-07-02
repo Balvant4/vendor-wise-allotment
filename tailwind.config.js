@@ -7,6 +7,14 @@ module.exports = {
   ],
   darkMode: 'class',
   theme: {
+    screens: {
+      xs: '420px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         // Core surface palette (dark logistics theme)
@@ -26,6 +34,7 @@ module.exports = {
         blue:    '#3b82f6',
         purple:  '#8b5cf6',
         cyan:    '#06b6d4',
+        reddark: '#7f1d1d',
       },
       fontFamily: {
         sans:  ['Inter', 'system-ui', 'sans-serif'],
