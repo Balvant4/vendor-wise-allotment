@@ -1,35 +1,117 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
+# ==========================
+# Dependencies
+# ==========================
+node_modules/
 
-# testing
-/coverage
+# ==========================
+# Next.js
+# ==========================
+.next/
+out/
+.vercel/
 
-# next.js
-/.next/
-/out/
+# ==========================
+# Environment Variables
+# ==========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
 
-# production
-/build
-
-# environment variables
-.env*
+# Keep the example file
 !.env.example
 
-# logs
+# ==========================
+# Logs
+# ==========================
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# vercel
-.vercel
+# ==========================
+# Runtime Files
+# ==========================
+pids/
+*.pid
+*.seed
+*.pid.lock
 
-# misc
-.DS_Store
-*.pem
+# ==========================
+# Coverage & Testing
+# ==========================
+coverage/
+.nyc_output/
 
-# typescript
+# ==========================
+# Build Output
+# ==========================
+dist/
+build/
+
+# ==========================
+# TypeScript
+# ==========================
 *.tsbuildinfo
-next-env.d.ts
+
+# ==========================
+# Cache
+# ==========================
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+
+# ==========================
+# IDE & Editors
+# ==========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.orig
+
+# ==========================
+# OS Files
+# ==========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==========================
+# Package Managers
+# ==========================
+.pnp.*
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+!.yarn/patches
+
+# ==========================
+# Temporary Files
+# ==========================
+tmp/
+temp/
+*.tmp
+
+# ==========================
+# Local Database
+# ==========================
+*.sqlite
+*.sqlite3
+
+# ==========================
+# Firebase
+# ==========================
+.firebase/
+
+# ==========================
+# Miscellaneous
+# ==========================
+.envrc

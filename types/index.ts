@@ -187,6 +187,8 @@ export interface DashboardFilters {
   isFix?: string;
   dateFrom?: string;
   dateTo?: string;
+  // Which timestamp field dateFrom/dateTo apply to. Defaults to wllWeighIn.
+  dateField?: 'wllWeighIn' | 'wllWeighOut' | 'loadingStartTime' | 'loadingEndTime' | 'gateInDate' | 'exciseOutDate';
   search?: string;
 }
 

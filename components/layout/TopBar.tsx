@@ -1,5 +1,5 @@
 'use client';
-import { Bell, Search, Menu, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Menu, SlidersHorizontal, X } from 'lucide-react';
 import { useAuth } from '@/features/authentication/components/AuthProvider';
 import { useFilters } from '@/features/dashboard/components/FilterProvider';
 import { useFilterOptions } from '@/features/dashboard/hooks/useDashboard';
@@ -7,6 +7,7 @@ import { MONTHS } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import NotificationBell from '@/components/layout/NotificationBell';
 
 interface TopBarProps {
   title?: string;
@@ -122,10 +123,7 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
           )}
         </button>
 
-        <button className="relative flex h-7 w-7 items-center justify-center rounded-lg
-                           border border-line bg-panel2 text-muted transition-all hover:text-gold">
-          <Bell size={13} />
-        </button>
+        {user && <NotificationBell />}
 
         {user ? (
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20

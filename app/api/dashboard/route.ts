@@ -13,6 +13,7 @@ function parseFilters(url: URL): DashboardFilters {
   if (p.get('isFix'))       f.isFix       = p.get('isFix')!;
   if (p.get('dateFrom'))    f.dateFrom    = p.get('dateFrom')!;
   if (p.get('dateTo'))      f.dateTo      = p.get('dateTo')!;
+  if (p.get('dateField'))   f.dateField   = p.get('dateField') as DashboardFilters['dateField'];
   if (p.get('search'))      f.search      = p.get('search')!;
   return f;
 }

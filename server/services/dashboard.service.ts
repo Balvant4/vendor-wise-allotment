@@ -14,6 +14,10 @@ import type {
   VehicleRecord as VehicleRecordType,
 } from '@/types';
 
+const DATE_FIELDS = new Set([
+  'wllWeighIn', 'wllWeighOut', 'loadingStartTime', 'loadingEndTime', 'gateInDate', 'exciseOutDate',
+]);
+
 function buildMatch(filters: DashboardFilters = {}): Record<string, unknown> {
   const match: Record<string, unknown> = { isDeleted: { $ne: true } };
   if (filters.year)        match.year = Number(filters.year);
@@ -24,10 +28,16 @@ function buildMatch(filters: DashboardFilters = {}): Record<string, unknown> {
     match.isFix = filters.isFix === 'true';
   }
   if (filters.dateFrom || filters.dateTo) {
+    const field = filters.dateField && DATE_FIELDS.has(filters.dateField) ? filters.dateField : 'wllWeighIn';
     const dateRange: Record<string, Date> = {};
-    if (filters.dateFrom) dateRange.$gte = new Date(filters.dateFrom);
-    if (filters.dateTo)   dateRange.$lte = new Date(filters.dateTo + 'T23:59:59');
-    match.wllWeighIn = dateRange;
+    const hasTime = (s: string) => s.includes('T');
+    if (filters.dateFrom) {
+      dateRange.$gte = hasTime(filters.dateFrom) ? new Date(filters.dateFrom) : new Date(`${filters.dateFrom}T00:00:00`);
+    }
+    if (filters.dateTo) {
+      dateRange.$lte = hasTime(filters.dateTo) ? new Date(filters.dateTo) : new Date(`${filters.dateTo}T23:59:59`);
+    }
+    match[field] = dateRange;
   }
   return match;
 }

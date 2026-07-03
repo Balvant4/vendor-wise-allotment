@@ -3,6 +3,7 @@ import connectDB from '@/database/connection';
 import Upload, { IUpload } from '@/models/Upload';
 import VehicleRecord from '@/models/VehicleRecord';
 import TransporterMaster from '@/models/TransporterMaster';
+import { notifySlaViolations, notifyUploadFailed, type ViolationRecordSummary } from '@/server/services/notification.service';
 import mongoose from 'mongoose';
 
 const ALERT_HOURS = Number(process.env.ALERT_THRESHOLD_HOURS ?? 25);
@@ -114,6 +115,7 @@ export async function parseAndProcessExcel(
   skippedDetails: SkippedRow[];
   unmappedTransporters: { name: string; count: number }[];
   sheetName: string;
+  newViolations: ViolationRecordSummary[];
 }> {
   // ── Read Excel ──
   const wb = XLSX.read(buffer, { type: 'buffer', raw: false });
@@ -267,6 +269,7 @@ export async function parseAndProcessExcel(
   // ── Bulk upsert ──
   let inserted   = 0;
   let duplicates = 0;
+  const newViolations: ViolationRecordSummary[] = [];
 
   if (toInsert.length > 0) {
     const ops = toInsert.map((record) => ({
@@ -280,6 +283,26 @@ export async function parseAndProcessExcel(
     const result = await VehicleRecord.bulkWrite(ops, { ordered: false });
     inserted   = result.upsertedCount ?? 0;
     duplicates = toInsert.length - inserted;
+
+    // Only notify for records that were actually newly inserted this run —
+    // result.upsertedIds maps the ops array index → the new _id, so we can
+    // trace each brand-new document back to its source row without a
+    // second DB round trip. Duplicates (already in the DB) never re-fire
+    // a notification, since they were already notified on their first upload.
+    for (const [indexStr, id] of Object.entries(result.upsertedIds ?? {})) {
+      const record = toInsert[Number(indexStr)];
+      if (record?.isOver25h) {
+        newViolations.push({
+          _id: id as mongoose.Types.ObjectId,
+          vehicleNo: String(record.vehicleNo),
+          containerNo: String(record.containerNo),
+          transporter: String(record.transporter),
+          division: String(record.division),
+          diffHours: Number(record.diffHours),
+          diffStr: String(record.diffStr),
+        });
+      }
+    }
   }
 
   // ── Build unmapped list ──
@@ -322,6 +345,7 @@ export async function parseAndProcessExcel(
     skippedDetails,
     unmappedTransporters,
     sheetName,
+    newViolations,
   };
 }
 
@@ -373,10 +397,21 @@ export async function processUpload(
         message: `${result.incompleteCount} records inserted with missing WLL Weighment dates — duration shows as "—" until updated`,
       }];
     }
+
+    // Notify admin/manager (in-app + email) about any brand-new SLA violations
+    // from this upload. Failures here must never fail the upload itself —
+    // the upload already succeeded from the user's point of view.
+    if (result.newViolations.length > 0) {
+      notifySlaViolations(uploadDoc._id as mongoose.Types.ObjectId, result.newViolations)
+        .catch((err) => console.error('[Upload] SLA violation notification failed:', err));
+    }
   } catch (err) {
     uploadDoc.status       = 'failed';
     uploadDoc.errorMessage = err instanceof Error ? err.message : 'Processing failed';
     console.error('[Upload] Processing error:', err);
+
+    notifyUploadFailed(uploadDoc._id as mongoose.Types.ObjectId, uploadDoc.errorMessage)
+      .catch((notifyErr) => console.error('[Upload] Failure notification failed:', notifyErr));
   }
 
   await uploadDoc.save();

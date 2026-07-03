@@ -4,6 +4,10 @@ import type { DashboardFilters } from '@/types';
 import { escapeRegex } from '@/lib/utils';
 import mongoose from 'mongoose';
 
+const DATE_FIELDS = new Set([
+  'wllWeighIn', 'wllWeighOut', 'loadingStartTime', 'loadingEndTime', 'gateInDate', 'exciseOutDate',
+]);
+
 function buildMatch(filters: DashboardFilters & { isOver25h?: string } = {}): Record<string, unknown> {
   const match: Record<string, unknown> = { isDeleted: { $ne: true } };
   if (filters.year)        match.year = Number(filters.year);
@@ -13,16 +17,29 @@ function buildMatch(filters: DashboardFilters & { isOver25h?: string } = {}): Re
   if (filters.isFix)       match.isFix = filters.isFix === 'true';
   if (filters.isOver25h)   match.isOver25h = filters.isOver25h === 'true';
   if (filters.dateFrom || filters.dateTo) {
+    const field = filters.dateField && DATE_FIELDS.has(filters.dateField) ? filters.dateField : 'wllWeighIn';
     const dateRange: Record<string, Date> = {};
-    if (filters.dateFrom) dateRange.$gte = new Date(filters.dateFrom);
-    if (filters.dateTo)   dateRange.$lte = new Date(filters.dateTo + 'T23:59:59');
-    match.wllWeighIn = dateRange;
+    // Accept both date-only ('YYYY-MM-DD', from the old single-day picker)
+    // and full datetime ('YYYY-MM-DDTHH:mm', from the new range+time picker).
+    // Date-only strings have no time component, so we widen them to cover
+    // the whole day; a value that already carries a time is used exactly
+    // as given — this is what makes time-based filtering precise rather
+    // than just date-bucketed.
+    const hasTime = (s: string) => s.includes('T');
+    if (filters.dateFrom) {
+      dateRange.$gte = hasTime(filters.dateFrom) ? new Date(filters.dateFrom) : new Date(`${filters.dateFrom}T00:00:00`);
+    }
+    if (filters.dateTo) {
+      dateRange.$lte = hasTime(filters.dateTo) ? new Date(filters.dateTo) : new Date(`${filters.dateTo}T23:59:59`);
+    }
+    match[field] = dateRange;
   }
   if (filters.search) {
     const safe = escapeRegex(filters.search);
     match.$or = [
       { vehicleNo: new RegExp(safe, 'i') },
       { containerNo: new RegExp(safe, 'i') },
+      { documentNumber: new RegExp(safe, 'i') },
     ];
   }
   return match;
@@ -44,7 +61,7 @@ export async function queryVehicles(filters: VehicleQueryFilters = {}) {
   const limit  = Math.min(100, Number(filters.limit) || 50);
   const skip   = (page - 1) * limit;
 
-  const allowedSort = ['vehicleNo', 'transporter', 'division', 'diffHours', 'wllWeighIn', 'createdAt'];
+  const allowedSort = ['vehicleNo', 'transporter', 'division', 'diffHours', 'wllWeighIn', 'wllWeighOut', 'loadingStartTime', 'loadingEndTime', 'gateInDate', 'createdAt'];
   const sortKey = allowedSort.includes(filters.sortKey ?? '') ? filters.sortKey! : 'wllWeighIn';
   const sortDir = filters.sortDir === 'asc' ? 1 : -1;
 
@@ -71,7 +88,7 @@ export async function queryVehiclesForExport(filters: VehicleQueryFilters = {}) 
   await connectDB();
   const match = buildMatch(filters);
 
-  const allowedSort = ['vehicleNo', 'transporter', 'division', 'diffHours', 'wllWeighIn', 'createdAt'];
+  const allowedSort = ['vehicleNo', 'transporter', 'division', 'diffHours', 'wllWeighIn', 'wllWeighOut', 'loadingStartTime', 'loadingEndTime', 'gateInDate', 'createdAt'];
   const sortKey = allowedSort.includes(filters.sortKey ?? '') ? filters.sortKey! : 'wllWeighIn';
   const sortDir = filters.sortDir === 'asc' ? 1 : -1;
 

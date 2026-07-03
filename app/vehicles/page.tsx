@@ -1,46 +1,72 @@
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import FullVehicleTable from '@/components/tables/FullVehicleTable';
-import DateRangePicker from '@/components/shared/DateRangePicker';
-import CountUpNumber from '@/components/shared/CountUpNumber';
+import DateTimeRangeFilter, { type DateTimeRangeValue } from '@/features/vehicles/components/DateTimeRangeFilter';
+import DateSummaryPopover from '@/features/vehicles/components/DateSummaryPopover';
+import ActiveFilterChips, { type FilterChip } from '@/features/vehicles/components/ActiveFilterChips';
 import { useFilters } from '@/features/dashboard/components/FilterProvider';
 import { useVehicles } from '@/features/vehicles/hooks/useVehicles';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboard';
-import { downloadBlob, fmtNum } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
+import { downloadBlob, MONTHS } from '@/lib/utils';
 import api from '@/lib/axios';
-import { Download, RefreshCw, CalendarDays, Truck } from 'lucide-react';
+import { Download, RefreshCw, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { VehicleRecord, PaginationMeta } from '@/types';
 
+const FIELD_LABELS: Record<string, string> = {
+  wllWeighIn: 'WLL In',
+  wllWeighOut: 'WLL Out',
+  loadingStartTime: 'Loading Start',
+  loadingEndTime: 'Loading End',
+  gateInDate: 'Gate In',
+  exciseOutDate: 'Excise Out',
+};
+
+function fmtChipDate(iso: string): string {
+  if (!iso) return '…';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '…';
+  return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 export default function VehiclesPage() {
-  const { filters } = useFilters();
+  const { filters, setFilter, resetFilters } = useFilters();
+
   const [page, setPage]       = useState(1);
   const [sortKey, setSortKey] = useState('wllWeighIn');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [isOver25h, setIsOver25h] = useState('');
   const [exporting, setExporting] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
+  const debouncedSearch = useDebounce(localSearch, 400);
 
-  const dateFilters = selectedDate ? { dateFrom: selectedDate, dateTo: selectedDate } : {};
+  const [range, setRange] = useState<DateTimeRangeValue>({ dateFrom: '', dateTo: '', dateField: 'wllWeighIn' });
+  const hasRange = !!(range.dateFrom || range.dateTo);
 
-  const { data, isLoading, refetch } = useVehicles({
-    ...filters,
-    ...dateFilters,
-    isOver25h,
+  const queryFilters = useMemo(
+    () => ({
+      ...filters,
+      search: debouncedSearch,
+      dateFrom: range.dateFrom,
+      dateTo: range.dateTo,
+      dateField: range.dateField,
+      isOver25h,
+    }),
+    [filters, debouncedSearch, range, isOver25h]
+  );
+
+  const { data, isLoading, refetch, isFetching } = useVehicles({
+    ...queryFilters,
     page,
     limit: 50,
     sortKey,
     sortDir,
   });
 
-  // Lightweight per-day KPIs + transporter breakdown, only fetched once a
-  // date is actually picked — reuses the existing dashboard aggregation
-  // endpoints instead of a bespoke one.
-  const { data: dayOverview, isLoading: dayLoading } = useDashboardOverview({
-    ...filters,
-    ...dateFilters,
-  });
+  // Summary popover data — only meaningfully fetched once a date/time range is applied.
+  const { data: dayOverview, isLoading: dayLoading } = useDashboardOverview(hasRange ? queryFilters : {});
 
   const records: VehicleRecord[]   = data?.data ?? [];
   const pagination: Partial<PaginationMeta> = data?.pagination ?? {};
@@ -56,22 +82,17 @@ export default function VehiclesPage() {
     setPage(1);
   }, [sortKey]);
 
-  const handleDateChange = (date: string) => {
-    setSelectedDate(date);
-    setPage(1);
-  };
-
   const handleExport = async () => {
     setExporting(true);
     try {
       const params = new URLSearchParams();
-      Object.entries({ ...filters, ...dateFilters, isOver25h, sortKey, sortDir }).forEach(([k, v]) => {
+      Object.entries({ ...queryFilters, sortKey, sortDir }).forEach(([k, v]) => {
         if (v) params.append(k, String(v));
       });
       params.append('export', 'xlsx');
       const response = await api.get(`/vehicles?${params}`, { responseType: 'blob' });
       downloadBlob(response.data, `vehicles_${Date.now()}.xlsx`);
-      toast.success('Export downloaded');
+      toast.success('Export downloaded — matches your current filters');
     } catch {
       toast.error('Export failed');
     } finally {
@@ -79,92 +100,96 @@ export default function VehiclesPage() {
     }
   };
 
+  // ── Active filter chips ──────────────────────────────────────────────────
+  const chips: FilterChip[] = [];
+  if (hasRange) {
+    chips.push({
+      key: 'range',
+      label: `${FIELD_LABELS[range.dateField]}: ${fmtChipDate(range.dateFrom)} – ${fmtChipDate(range.dateTo)}`,
+      onRemove: () => setRange({ dateFrom: '', dateTo: '', dateField: range.dateField }),
+    });
+  }
+  if (isOver25h) {
+    chips.push({
+      key: 'status',
+      label: isOver25h === 'true' ? 'Status: >25H' : 'Status: Normal',
+      onRemove: () => setIsOver25h(''),
+    });
+  }
+  if (filters.division) {
+    chips.push({ key: 'division', label: `Division: ${filters.division}`, onRemove: () => setFilter('division', '') });
+  }
+  if (filters.isFix) {
+    chips.push({ key: 'isFix', label: filters.isFix === 'true' ? 'Fix only' : 'Non-Fix only', onRemove: () => setFilter('isFix', '') });
+  }
+  if (filters.year) {
+    chips.push({ key: 'year', label: `Year: ${filters.year}`, onRemove: () => setFilter('year', '') });
+  }
+  if (filters.month) {
+    chips.push({ key: 'month', label: `Month: ${MONTHS[Number(filters.month) - 1]}`, onRemove: () => setFilter('month', '') });
+  }
+  if (localSearch) {
+    chips.push({ key: 'search', label: `Search: "${localSearch}"`, onRemove: () => setLocalSearch('') });
+  }
+
+  const handleResetAll = () => {
+    resetFilters();
+    setIsOver25h('');
+    setLocalSearch('');
+    setRange({ dateFrom: '', dateTo: '', dateField: 'wllWeighIn' });
+    setPage(1);
+  };
+
   return (
     <AppShell title="Data Table">
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-        {/* Left panel — date filter + transporter summary */}
-        <div className="space-y-4 lg:sticky lg:top-[70px] lg:self-start">
-          <div className="panel-card relative overflow-visible">
-            <div className="mb-3 flex items-center gap-2">
-              <CalendarDays size={14} className="text-gold" />
-              <h3 className="text-xs font-bold text-text">Filter by Date</h3>
-            </div>
-            <div className="relative">
-              <DateRangePicker value={selectedDate} onChange={handleDateChange} />
-            </div>
+      <div className="panel-card min-w-0 !p-0 overflow-hidden">
+        {/* Compact toolbar — every filter lives here, right above the table,
+            instead of a separate sidebar panel eating vertical space. */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+          <h2 className="text-sm font-bold text-text mr-1 shrink-0">Vehicle Records</h2>
+
+          <div className="relative">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted2 pointer-events-none" />
+            <input
+              value={localSearch}
+              onChange={(e) => { setLocalSearch(e.target.value); setPage(1); }}
+              placeholder="Vehicle, container, doc no…"
+              className="h-7 w-40 sm:w-52 rounded-lg border border-line bg-panel2 pl-7 pr-2 text-xs
+                         text-text placeholder:text-muted2 outline-none focus:border-gold
+                         focus:ring-1 focus:ring-gold/10 transition-all"
+            />
           </div>
 
-          {selectedDate && (
-            <>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: 'Total', value: dayOverview?.kpis?.total, cls: 'text-gold' },
-                  { label: 'Fix', value: dayOverview?.kpis?.fixLoads, cls: 'text-blue' },
-                  { label: 'Non-Fix', value: dayOverview?.kpis?.nonFixLoads, cls: 'text-green' },
-                  { label: '>25H', value: dayOverview?.kpis?.over25, cls: 'text-red' },
-                ].map(({ label, value, cls }) => (
-                  <div key={label} className="panel-card p-3">
-                    <div className="text-[9px] font-bold uppercase tracking-wide text-muted2 mb-1">{label}</div>
-                    <div className={`text-lg font-bold font-mono ${cls}`}>
-                      {dayLoading ? <span className="skeleton inline-block h-4 w-8 rounded" /> : <CountUpNumber value={value} />}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <DateTimeRangeFilter value={range} onChange={(v) => { setRange(v); setPage(1); }} />
 
-              <div className="panel-card">
-                <div className="mb-3 flex items-center gap-2">
-                  <Truck size={14} className="text-gold" />
-                  <h3 className="text-xs font-bold text-text">Transporter Breakdown</h3>
-                </div>
-                {dayLoading ? (
-                  <div className="space-y-2">
-                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-7 rounded" />)}
-                  </div>
-                ) : transporterCounts.length === 0 ? (
-                  <p className="text-[10px] text-muted">No loads on this date.</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {transporterCounts.map((t) => (
-                      <div key={t.transporter} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-panel2 transition-colors">
-                        <span className="truncate text-[11px] text-text">{t.transporter}</span>
-                        <span className="ml-2 shrink-0 rounded-md bg-gold/10 px-1.5 py-0.5 text-[10px] font-bold font-mono text-gold">
-                          {fmtNum(t.total)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+          <div className="flex items-center gap-1 rounded-lg border border-line bg-panel2 p-0.5">
+            {[
+              { label: 'All',    value: '' },
+              { label: '>25H',   value: 'true' },
+              { label: 'Normal', value: 'false' },
+            ].map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => { setIsOver25h(value); setPage(1); }}
+                className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
+                  isOver25h === value ? 'bg-gold text-black' : 'text-muted hover:text-text'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-        {/* Main table */}
-        <div className="panel-card min-w-0">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-bold text-text mr-auto">Vehicle Records</h2>
+          <DateSummaryPopover
+            kpis={dayOverview?.kpis}
+            transporterCounts={transporterCounts}
+            loading={dayLoading}
+            disabled={!hasRange}
+          />
 
-            <div className="flex items-center gap-1 rounded-lg border border-line bg-panel2 p-0.5">
-              {[
-                { label: 'All',    value: '' },
-                { label: '>25H',   value: 'true' },
-                { label: 'Normal', value: 'false' },
-              ].map(({ label, value }) => (
-                <button
-                  key={value}
-                  onClick={() => { setIsOver25h(value); setPage(1); }}
-                  className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
-                    isOver25h === value ? 'bg-gold text-black' : 'text-muted hover:text-text'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <button onClick={() => refetch()} className="btn-ghost p-1.5">
-              <RefreshCw size={13} />
+          <div className="ml-auto flex items-center gap-1.5">
+            <button onClick={() => refetch()} className="btn-ghost p-1.5" title="Refresh">
+              <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
             </button>
             <button onClick={handleExport} disabled={exporting} className="btn-ghost text-xs">
               {exporting
@@ -173,7 +198,11 @@ export default function VehiclesPage() {
               }
             </button>
           </div>
+        </div>
 
+        <ActiveFilterChips chips={chips} onResetAll={handleResetAll} />
+
+        <div className="p-4">
           <FullVehicleTable
             data={records}
             loading={isLoading}

@@ -4,6 +4,9 @@ import { queryVehicles, queryVehiclesForExport } from '@/server/queries/vehicle.
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import type { VehicleRecord } from '@/types';
+import type { DashboardFilters } from '@/types';
+
+type DashboardFiltersDateField = NonNullable<DashboardFilters['dateField']>;
 
 const EXPORT_COLUMNS: { key: keyof VehicleRecord | 'srNo' | 'status'; label: string }[] = [
   { key: 'srNo',             label: 'Sr. No' },
@@ -44,6 +47,7 @@ export const GET = withErrorHandler(async (req: Request) => {
     isOver25h:   p.get('isOver25h')   ?? undefined,
     dateFrom:    p.get('dateFrom')    ?? undefined,
     dateTo:      p.get('dateTo')      ?? undefined,
+    dateField:   (p.get('dateField') as DashboardFiltersDateField) ?? undefined,
     search:      p.get('search')      ?? undefined,
     page:        Number(p.get('page'))  || 1,
     limit:       Number(p.get('limit')) || 50,

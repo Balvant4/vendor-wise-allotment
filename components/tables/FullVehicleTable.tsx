@@ -111,8 +111,8 @@ export default function FullVehicleTable({
               return (
                 <th
                   key={col.key}
-                  style={frozen ? { left: frozenOffsets.get(col.key), position: 'sticky', zIndex: 20 } : undefined}
-                  className={`table-th whitespace-nowrap ${col.sortable ? 'cursor-pointer select-none hover:text-text transition-colors' : ''} ${frozen ? 'bg-panel3' : ''}`}
+                  style={frozen ? { left: frozenOffsets.get(col.key), position: 'sticky', top: 56, zIndex: 30 } : { position: 'sticky', top: 56, zIndex: 20 }}
+                  className={`table-th whitespace-nowrap ${col.sortable ? 'cursor-pointer select-none hover:text-text transition-colors' : ''} ${frozen ? 'bg-panel3' : 'bg-panel3'}`}
                   onClick={() => col.sortable && onSort?.(col.key)}
                 >
                   <span className="inline-flex items-center gap-1">
