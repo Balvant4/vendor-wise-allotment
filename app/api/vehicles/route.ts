@@ -8,6 +8,23 @@ import type { DashboardFilters } from '@/types';
 
 type DashboardFiltersDateField = NonNullable<DashboardFilters['dateField']>;
 
+// Columns that hold timestamps and should be exported with both date and
+// time (not just the date) so operators can see exact in/out moments.
+const DATETIME_COLUMNS = new Set<string>([
+  'gateInDate', 'exciseOutDate', 'loadingStartTime', 'loadingEndTime',
+  'wllWeighIn', 'wllWeighOut',
+]);
+
+function fmtExportDateTime(val: unknown): string {
+  if (!val) return '';
+  const dt = val instanceof Date ? val : new Date(val as string);
+  if (isNaN(dt.getTime())) return '';
+  return dt.toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  });
+}
+
 const EXPORT_COLUMNS: { key: keyof VehicleRecord | 'srNo' | 'status'; label: string }[] = [
   { key: 'srNo',             label: 'Sr. No' },
   { key: 'documentNumber',   label: 'Document No' },
@@ -65,6 +82,7 @@ export const GET = withErrorHandler(async (req: Request) => {
         if (col.key === 'status') { out[col.label] = r.isOver25h ? 'Company Detention' : 'OK'; continue; }
         if (col.key === 'isFix') { out[col.label] = r.isFix ? 'Fix' : 'Non-Fix'; continue; }
         const val = (r as unknown as Record<string, unknown>)[col.key];
+        if (DATETIME_COLUMNS.has(col.key)) { out[col.label] = fmtExportDateTime(val); continue; }
         out[col.label] = val instanceof Date ? val.toISOString() : (val ?? '');
       }
       return out;

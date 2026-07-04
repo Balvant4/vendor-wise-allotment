@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { useAlerts } from '@/features/dashboard/hooks/useDashboard';
 import { useFilters } from '@/features/dashboard/components/FilterProvider';
-import { fmtDate, fmtHours, fmtNum } from '@/lib/utils';
+import { fmtDateTime, fmtHours, fmtNum } from '@/lib/utils';
 import Badge from '@/components/shared/Badge';
 import { severityFromHours } from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
@@ -150,8 +150,8 @@ export default function AlertsPage() {
                       <td className="table-td font-mono">{r.containerNo}</td>
                       <td className="table-td">{r.transporter}</td>
                       <td className="table-td font-mono font-semibold text-text">{r.vehicleNo}</td>
-                      <td className="table-td whitespace-nowrap">{fmtDate(r.wllWeighIn)}</td>
-                      <td className="table-td whitespace-nowrap">{fmtDate(r.wllWeighOut)}</td>
+                      <td className="table-td whitespace-nowrap">{fmtDateTime(r.wllWeighIn)}</td>
+                      <td className="table-td whitespace-nowrap">{fmtDateTime(r.wllWeighOut)}</td>
                       <td className="table-td">
                         <span className={`inline-flex items-center gap-1.5 font-mono text-xs font-bold ${
                           severity === 'high' ? 'text-red' : severity === 'medium' ? 'text-red' : 'text-orange-400'

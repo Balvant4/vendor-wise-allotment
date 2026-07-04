@@ -4,7 +4,7 @@ import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Badge from '@/components/shared/Badge';
 import EmptyState from '@/components/shared/EmptyState';
 import { Truck } from 'lucide-react';
-import { fmtDate, fmtHours, fmtNum } from '@/lib/utils';
+import { fmtDateTime, fmtHours, fmtNum } from '@/lib/utils';
 import type { VehicleRecord } from '@/types';
 
 interface Column {
@@ -49,8 +49,8 @@ const COLUMNS: Column[] = [
         : <Badge variant="green">OK</Badge>,
   },
   {
-    key: 'wllWeighIn', label: 'Date', sortable: true,
-    render: (r) => <span className="text-muted text-xs">{fmtDate(r.wllWeighIn)}</span>,
+    key: 'wllWeighIn', label: 'Date & Time', sortable: true,
+    render: (r) => <span className="text-muted text-xs whitespace-nowrap">{fmtDateTime(r.wllWeighIn)}</span>,
   },
 ];
 

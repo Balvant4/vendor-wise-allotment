@@ -3,7 +3,7 @@ import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Badge from '@/components/shared/Badge';
 import EmptyState from '@/components/shared/EmptyState';
 import { Truck } from 'lucide-react';
-import { fmtDate, fmtHours, fmtNum } from '@/lib/utils';
+import { fmtDateTime, fmtHours, fmtNum } from '@/lib/utils';
 import type { VehicleRecord } from '@/types';
 
 interface Column {
@@ -24,14 +24,14 @@ const COLUMNS: Column[] = [
   { key: 'containerNo', label: 'Container', sortable: true },
   { key: 'transporter', label: 'Transporter', sortable: true },
   { key: 'vehicleNo', label: 'Vehicle No', sortable: true },
-  { key: 'gateInDate', label: 'Gate In', render: (r) => fmtDate(r.gateInDate) },
-  { key: 'exciseOutDate', label: 'Excise Out', render: (r) => fmtDate(r.exciseOutDate) },
+  { key: 'gateInDate', label: 'Gate In', render: (r) => fmtDateTime(r.gateInDate) },
+  { key: 'exciseOutDate', label: 'Excise Out', render: (r) => fmtDateTime(r.exciseOutDate) },
   { key: 'gateExciseDiff', label: 'Gate-Excise Diff', render: (r) => r.gateExciseDiff || '—' },
-  { key: 'loadingStartTime', label: 'Loading Start', render: (r) => fmtDate(r.loadingStartTime) },
-  { key: 'loadingEndTime', label: 'Loading End', render: (r) => fmtDate(r.loadingEndTime) },
+  { key: 'loadingStartTime', label: 'Loading Start', render: (r) => fmtDateTime(r.loadingStartTime) },
+  { key: 'loadingEndTime', label: 'Loading End', render: (r) => fmtDateTime(r.loadingEndTime) },
   { key: 'loadingTimeDiff', label: 'Loading Diff', render: (r) => r.loadingTimeDiff || '—' },
-  { key: 'wllWeighIn', label: 'WLL Weigh IN', sortable: true, render: (r) => fmtDate(r.wllWeighIn) },
-  { key: 'wllWeighOut', label: 'WLL Weigh OUT', render: (r) => fmtDate(r.wllWeighOut) },
+  { key: 'wllWeighIn', label: 'WLL Weigh IN', sortable: true, render: (r) => fmtDateTime(r.wllWeighIn) },
+  { key: 'wllWeighOut', label: 'WLL Weigh OUT', render: (r) => fmtDateTime(r.wllWeighOut) },
   {
     key: 'diffHours', label: 'Weigh Diff', sortable: true,
     render: (r) => r.hasIncompleteData
@@ -102,58 +102,60 @@ export default function FullVehicleTable({
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-line">
-      <table className="w-full min-w-[1700px]">
-        <thead>
-          <tr>
-            {COLUMNS.map((col) => {
-              const frozen = FROZEN_KEYS.has(col.key);
-              return (
-                <th
-                  key={col.key}
-                  style={frozen ? { left: frozenOffsets.get(col.key), position: 'sticky', top: 56, zIndex: 30 } : { position: 'sticky', top: 56, zIndex: 20 }}
-                  className={`table-th whitespace-nowrap ${col.sortable ? 'cursor-pointer select-none hover:text-text transition-colors' : ''} ${frozen ? 'bg-panel3' : 'bg-panel3'}`}
-                  onClick={() => col.sortable && onSort?.(col.key)}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {col.label}
-                    {col.sortable && <SortIcon col={col.key} />}
-                  </span>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => {
-            const globalIndex = (page - 1) * limit + i + 1;
-            return (
-            <tr
-              key={row._id}
-              className={`transition-colors ${i % 2 === 0 ? 'bg-bg' : 'bg-panel/40'} ${row.isOver25h ? 'ring-1 ring-red/10' : ''} hover:bg-panel2`}
-            >
+    <div className="rounded-lg border border-line">
+      <div className="overflow-auto max-h-[75vh]">
+        <table className="w-full min-w-[1700px]">
+          <thead>
+            <tr>
               {COLUMNS.map((col) => {
                 const frozen = FROZEN_KEYS.has(col.key);
                 return (
-                  <td
+                  <th
                     key={col.key}
-                    style={frozen ? { left: frozenOffsets.get(col.key), position: 'sticky', zIndex: 10 } : undefined}
-                    className={`table-td whitespace-nowrap ${frozen ? (i % 2 === 0 ? 'bg-bg' : 'bg-panel') : ''}`}
+                    style={frozen ? { left: frozenOffsets.get(col.key), position: 'sticky', top: 0, zIndex: 30 } : { position: 'sticky', top: 0, zIndex: 20 }}
+                    className={`table-th whitespace-nowrap ${col.sortable ? 'cursor-pointer select-none hover:text-text transition-colors' : ''} ${frozen ? 'bg-panel3' : 'bg-panel3'}`}
+                    onClick={() => col.sortable && onSort?.(col.key)}
                   >
-                    {col.key === 'srNo'
-                      ? globalIndex
-                      : col.render
-                        ? col.render(row, i)
-                        : <span className="text-xs text-muted font-mono">{String((row as unknown as Record<string, unknown>)[col.key] ?? '—')}</span>
-                    }
-                  </td>
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {col.sortable && <SortIcon col={col.key} />}
+                    </span>
+                  </th>
                 );
               })}
             </tr>
-            );
-          })}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((row, i) => {
+              const globalIndex = (page - 1) * limit + i + 1;
+              return (
+              <tr
+                key={row._id}
+                className={`transition-colors ${i % 2 === 0 ? 'bg-bg' : 'bg-panel/40'} ${row.isOver25h ? 'ring-1 ring-red/10' : ''} hover:bg-panel2`}
+              >
+                {COLUMNS.map((col) => {
+                  const frozen = FROZEN_KEYS.has(col.key);
+                  return (
+                    <td
+                      key={col.key}
+                      style={frozen ? { left: frozenOffsets.get(col.key), position: 'sticky', zIndex: 10 } : undefined}
+                      className={`table-td whitespace-nowrap ${frozen ? (i % 2 === 0 ? 'bg-bg' : 'bg-panel') : ''}`}
+                    >
+                      {col.key === 'srNo'
+                        ? globalIndex
+                        : col.render
+                          ? col.render(row, i)
+                          : <span className="text-xs text-muted font-mono">{String((row as unknown as Record<string, unknown>)[col.key] ?? '—')}</span>
+                      }
+                    </td>
+                  );
+                })}
+              </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <div className="flex items-center justify-between border-t border-line bg-panel px-3 py-3">
         <span className="text-[10px] text-muted">
