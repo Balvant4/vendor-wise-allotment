@@ -1,12 +1,17 @@
 import connectDB from '@/database/connection';
 import VehicleRecord, { IVehicleRecord } from '@/models/VehicleRecord';
 import type { DashboardFilters } from '@/types';
-import { escapeRegex } from '@/lib/utils';
+import { escapeRegex, buildSearchMatch } from '@/lib/utils';
 import mongoose from 'mongoose';
 
 const DATE_FIELDS = new Set([
   'wllWeighIn', 'wllWeighOut', 'loadingStartTime', 'loadingEndTime', 'gateInDate', 'exciseOutDate',
 ]);
+
+// Kept identical to server/services/dashboard.service.ts's SEARCH_* fields
+// via the shared buildSearchMatch helper in lib/utils.ts.
+const SEARCH_TEXT_FIELDS = ['vehicleNo', 'containerNo', 'documentNumber', 'transporter', 'division', 'customerName'];
+const SEARCH_DATE_FIELDS = ['gateInDate', 'exciseOutDate', 'loadingStartTime', 'loadingEndTime', 'wllWeighIn', 'wllWeighOut'];
 
 function buildMatch(filters: DashboardFilters & { isOver25h?: string } = {}): Record<string, unknown> {
   const match: Record<string, unknown> = { isDeleted: { $ne: true } };
@@ -34,14 +39,8 @@ function buildMatch(filters: DashboardFilters & { isOver25h?: string } = {}): Re
     }
     match[field] = dateRange;
   }
-  if (filters.search) {
-    const safe = escapeRegex(filters.search);
-    match.$or = [
-      { vehicleNo: new RegExp(safe, 'i') },
-      { containerNo: new RegExp(safe, 'i') },
-      { documentNumber: new RegExp(safe, 'i') },
-    ];
-  }
+  const searchMatch = buildSearchMatch(filters.search, SEARCH_TEXT_FIELDS, SEARCH_DATE_FIELDS);
+  if (searchMatch) Object.assign(match, searchMatch);
   return match;
 }
 

@@ -1,6 +1,6 @@
 import connectDB from '@/database/connection';
 import VehicleRecord from '@/models/VehicleRecord';
-import { escapeRegex } from '@/lib/utils';
+import { escapeRegex, buildSearchMatch } from '@/lib/utils';
 import type {
   DashboardFilters,
   DashboardKPIs,
@@ -17,6 +17,14 @@ import type {
 const DATE_FIELDS = new Set([
   'wllWeighIn', 'wllWeighOut', 'loadingStartTime', 'loadingEndTime', 'gateInDate', 'exciseOutDate',
 ]);
+
+// Fields the header search box matches against on every dashboard-backed
+// page (Dashboard, Alerts, Division, Vendors) — kept identical to the set
+// used in server/queries/vehicle.queries.ts (Vehicles page) via the shared
+// buildSearchMatch helper, so "search everything" means the same thing
+// regardless of which page you're on.
+const SEARCH_TEXT_FIELDS = ['vehicleNo', 'containerNo', 'documentNumber', 'transporter', 'division', 'customerName'];
+const SEARCH_DATE_FIELDS = ['gateInDate', 'exciseOutDate', 'loadingStartTime', 'loadingEndTime', 'wllWeighIn', 'wllWeighOut'];
 
 function buildMatch(filters: DashboardFilters = {}): Record<string, unknown> {
   const match: Record<string, unknown> = { isDeleted: { $ne: true } };
@@ -39,6 +47,8 @@ function buildMatch(filters: DashboardFilters = {}): Record<string, unknown> {
     }
     match[field] = dateRange;
   }
+  const searchMatch = buildSearchMatch(filters.search, SEARCH_TEXT_FIELDS, SEARCH_DATE_FIELDS);
+  if (searchMatch) Object.assign(match, searchMatch);
   return match;
 }
 

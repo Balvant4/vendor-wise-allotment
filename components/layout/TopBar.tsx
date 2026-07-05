@@ -1,5 +1,5 @@
 'use client';
-import { Search, Menu, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Menu, SlidersHorizontal, X, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/features/authentication/components/AuthProvider';
 import { useFilters } from '@/features/dashboard/components/FilterProvider';
 import { useFilterOptions } from '@/features/dashboard/hooks/useDashboard';
@@ -16,7 +16,7 @@ interface TopBarProps {
 
 export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps) {
   const { user } = useAuth();
-  const { filters, setFilter } = useFilters();
+  const { filters, setFilter, resetFilters } = useFilters();
   const { data: opts } = useFilterOptions();
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -33,10 +33,20 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
     }
   }, [debounced, setFilter]);
 
-  const years     = opts?.years     ?? [];
-  const divisions = opts?.divisions ?? [];
+  const years       = opts?.years       ?? [];
+  const divisions    = opts?.divisions    ?? [];
+  const transporters = opts?.transporters ?? [];
 
-  const activeFilterCount = [filters.division, filters.isFix].filter(Boolean).length;
+  const handleClearFilters = () => {
+    resetFilters();
+    setLocalSearch('');
+  };
+
+  const activeFilterCount = [
+    filters.division,
+    filters.transporter,
+    filters.isFix,
+  ].filter(Boolean).length;
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 sm:gap-3 border-b border-line
@@ -53,13 +63,19 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
       <h1 className="text-sm font-bold text-text mr-2 truncate">{title}</h1>
 
       <div className="flex items-center gap-1.5 ml-auto">
-        {/* Search — always present, shrinks on small screens instead of disappearing */}
+        {/* Search — always present, shrinks on small screens instead of disappearing.
+            Matches vehicle no, container no, document no, transporter, division,
+            customer name, and dates (dd-mm-yyyy / dd/mm/yyyy / yyyy-mm-dd) — see
+            server/queries/vehicle.queries.ts for the matching logic. Placeholder
+            and title both spell this out since the box itself is too narrow to
+            show the full hint at once, especially on mobile widths. */}
         <div className="relative">
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted2 pointer-events-none" />
           <input
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            placeholder="Search…"
+            placeholder="Vehicle, container, transporter, date (dd-mm-yyyy)…"
+            title="Search by vehicle no, container no, document no, transporter, division, customer name, or date — type a date as dd-mm-yyyy, dd/mm/yyyy, or yyyy-mm-dd"
             className="h-7 w-20 xs:w-28 sm:w-36 md:w-48 rounded-lg border border-line bg-panel2 pl-7 pr-2 text-xs
                        text-text placeholder:text-muted2 outline-none focus:border-gold
                        focus:ring-1 focus:ring-gold/10 transition-all"
@@ -88,8 +104,8 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
           ))}
         </select>
 
-        {/* Division + Fix toggle — collapse into a filter drawer below md,
-            so they stay reachable on mobile instead of disappearing entirely */}
+        {/* Division + Transporter + Fix toggle — collapse into a filter drawer below their
+            breakpoints, so they stay reachable on mobile instead of disappearing entirely */}
         <select
           value={filters.division}
           onChange={(e) => setFilter('division', e.target.value)}
@@ -97,6 +113,15 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
         >
           <option value="">All divisions</option>
           {divisions.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+
+        <select
+          value={filters.transporter}
+          onChange={(e) => setFilter('transporter', e.target.value)}
+          className="fb-select h-7 text-xs hidden lg:block"
+        >
+          <option value="">All transporters</option>
+          {transporters.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
 
         <select
@@ -109,7 +134,19 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
           <option value="false">Non-Fix Only</option>
         </select>
 
-        {/* More filters button — visible below md (division) and below lg (fix toggle) */}
+        {/* Clear all filters */}
+        {(activeFilterCount > 0 || filters.search) && (
+          <button
+            onClick={handleClearFilters}
+            title="Clear all filters"
+            className="flex h-7 items-center gap-1 rounded-lg border border-line bg-panel2 px-2
+                       text-muted transition-all hover:text-gold"
+          >
+            <RotateCcw size={13} />
+          </button>
+        )}
+
+        {/* More filters button — visible below md (division) and below lg (transporter/fix toggle) */}
         <button
           onClick={() => setFiltersOpen(true)}
           className="relative flex h-7 items-center gap-1 rounded-lg border border-line bg-panel2 px-2
@@ -141,7 +178,7 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
         )}
       </div>
 
-      {/* Filter drawer — division + fix toggle + month, reachable on any screen size */}
+      {/* Filter drawer — division + transporter + fix toggle + month, reachable on any screen size */}
       {filtersOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center lg:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setFiltersOpen(false)} />
@@ -179,6 +216,18 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
               </div>
 
               <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted2">Transporter</label>
+                <select
+                  value={filters.transporter}
+                  onChange={(e) => setFilter('transporter', e.target.value)}
+                  className="input-field text-xs"
+                >
+                  <option value="">All transporters</option>
+                  {transporters.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div>
                 <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted2">Load Type</label>
                 <select
                   value={filters.isFix}
@@ -192,9 +241,14 @@ export default function TopBar({ title = 'Dashboard', onMenuClick }: TopBarProps
               </div>
             </div>
 
-            <button onClick={() => setFiltersOpen(false)} className="btn-primary w-full mt-5 justify-center">
-              Apply
-            </button>
+            <div className="mt-5 flex gap-2">
+              <button onClick={handleClearFilters} className="btn-ghost flex-1 justify-center">
+                Clear all
+              </button>
+              <button onClick={() => setFiltersOpen(false)} className="btn-primary flex-1 justify-center">
+                Apply
+              </button>
+            </div>
           </div>
         </div>
       )}

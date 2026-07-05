@@ -81,3 +81,61 @@ export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 // up ReDoS-style crafted input on public, unauthenticated search endpoints.
 export const escapeRegex = (str: string): string =>
   str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Accepts dd-mm-yyyy, dd/mm/yyyy, or yyyy-mm-dd (with - or / as separator)
+// and returns the matching calendar day, or null if the text isn't a date.
+// Kept deliberately forgiving about separators since operators may type
+// either style — this only needs to recognize a date, not validate a form.
+export function parseSearchDate(raw: string): Date | null {
+  const str = raw.trim();
+
+  const ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (ddmmyyyy) {
+    const [, dd, mm, yyyy] = ddmmyyyy;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const yyyymmdd = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (yyyymmdd) {
+    const [, yyyy, mm, dd] = yyyymmdd;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  return null;
+}
+
+// Shared "search everything" match builder used by both vehicle.queries.ts
+// (Vehicles page) and dashboard.service.ts (Dashboard/Alerts/Division/Vendors
+// pages) so the header search box behaves identically everywhere it appears,
+// instead of each call site reimplementing (and drifting from) its own logic.
+// Returns a Mongo `$or` clause, or null if there's nothing to search for.
+export function buildSearchMatch(
+  search: string | undefined,
+  textFields: string[],
+  dateFields: string[]
+): Record<string, unknown> | null {
+  if (!search) return null;
+
+  const safe = escapeRegex(search);
+  const orConditions: Record<string, unknown>[] = textFields.map((field) => ({
+    [field]: new RegExp(safe, 'i'),
+  }));
+
+  // If the typed text parses as a date, also match any record where one of
+  // the given timestamp fields falls on that calendar day.
+  const parsedDate = parseSearchDate(search);
+  if (parsedDate) {
+    const dayStart = new Date(parsedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(parsedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    for (const field of dateFields) {
+      orConditions.push({ [field]: { $gte: dayStart, $lte: dayEnd } });
+    }
+  }
+
+  return { $or: orConditions };
+}

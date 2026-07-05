@@ -14,10 +14,6 @@ export default function AlertsPage() {
   const { data = [], isLoading } = useAlerts(filters);
 
   const {
-    divisions, transporters,
-    divisionFilter, setDivisionFilter,
-    transporterFilter, setTransporterFilter,
-    loadTypeFilter, setLoadTypeFilter,
     sortDir, setSortDir,
     sortedRows, summary, insights,
   } = useAlertsInsights(data);
@@ -40,14 +36,6 @@ export default function AlertsPage() {
 
       <div className="panel-card">
         <AlertsFilterBar
-          divisions={divisions}
-          transporters={transporters}
-          divisionFilter={divisionFilter}
-          onDivisionChange={setDivisionFilter}
-          transporterFilter={transporterFilter}
-          onTransporterChange={setTransporterFilter}
-          loadTypeFilter={loadTypeFilter}
-          onLoadTypeChange={setLoadTypeFilter}
           sortDir={sortDir}
           onToggleSort={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
           resultCount={sortedRows.length}
