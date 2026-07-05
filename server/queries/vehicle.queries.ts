@@ -13,7 +13,22 @@ const DATE_FIELDS = new Set([
 const SEARCH_TEXT_FIELDS = ['vehicleNo', 'containerNo', 'documentNumber', 'transporter', 'division', 'customerName'];
 const SEARCH_DATE_FIELDS = ['gateInDate', 'exciseOutDate', 'loadingStartTime', 'loadingEndTime', 'wllWeighIn', 'wllWeighOut'];
 
-function buildMatch(filters: DashboardFilters & { isOver25h?: string } = {}): Record<string, unknown> {
+export interface VehicleQueryFilters extends DashboardFilters {
+  isOver25h?: string;
+  // ── Added for the Current Month table's dedicated Customer / Container /
+  // Status filters (in addition to the general free-text `search`, which
+  // already matches these fields loosely too). ──
+  customer?: string;
+  container?: string;
+  /** 'complete' = has both WLL weigh in & out; 'incomplete' = hasIncompleteData */
+  completeness?: 'complete' | 'incomplete';
+  page?: number;
+  limit?: number;
+  sortKey?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
+function buildMatch(filters: VehicleQueryFilters = {}): Record<string, unknown> {
   const match: Record<string, unknown> = { isDeleted: { $ne: true } };
   if (filters.year)        match.year = Number(filters.year);
   if (filters.month)       match.month = Number(filters.month);
@@ -21,6 +36,10 @@ function buildMatch(filters: DashboardFilters & { isOver25h?: string } = {}): Re
   if (filters.transporter) match.transporter = new RegExp(escapeRegex(filters.transporter), 'i');
   if (filters.isFix)       match.isFix = filters.isFix === 'true';
   if (filters.isOver25h)   match.isOver25h = filters.isOver25h === 'true';
+  if (filters.customer)    match.customerName = new RegExp(escapeRegex(filters.customer), 'i');
+  if (filters.container)   match.containerNo = new RegExp(escapeRegex(filters.container), 'i');
+  if (filters.completeness === 'complete')   match.hasIncompleteData = false;
+  if (filters.completeness === 'incomplete') match.hasIncompleteData = true;
   if (filters.dateFrom || filters.dateTo) {
     const field = filters.dateField && DATE_FIELDS.has(filters.dateField) ? filters.dateField : 'wllWeighIn';
     const dateRange: Record<string, Date> = {};
@@ -42,14 +61,6 @@ function buildMatch(filters: DashboardFilters & { isOver25h?: string } = {}): Re
   const searchMatch = buildSearchMatch(filters.search, SEARCH_TEXT_FIELDS, SEARCH_DATE_FIELDS);
   if (searchMatch) Object.assign(match, searchMatch);
   return match;
-}
-
-export interface VehicleQueryFilters extends DashboardFilters {
-  isOver25h?: string;
-  page?: number;
-  limit?: number;
-  sortKey?: string;
-  sortDir?: 'asc' | 'desc';
 }
 
 export async function queryVehicles(filters: VehicleQueryFilters = {}) {
@@ -79,7 +90,7 @@ export async function queryVehicles(filters: VehicleQueryFilters = {}) {
   };
 }
 
-// Used for Excel export — no pagination, but capped so a runaway filter
+// Used for Excel/CSV export — no pagination, but capped so a runaway filter
 // (e.g. no filters at all on a huge collection) can't take down the server.
 const EXPORT_ROW_CAP = 20000;
 

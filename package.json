@@ -19,6 +19,8 @@
     "date-fns": "^3.6.0",
     "dotenv": "^16.6.1",
     "jose": "^6.2.3",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.408.0",
     "mongoose": "^8.5.1",

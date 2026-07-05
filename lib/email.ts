@@ -30,11 +30,19 @@ function getTransporter() {
   return transporter;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
+
 export interface SendEmailInput {
   to: string[];
   subject: string;
   html: string;
   text?: string;
+  /** Added for the monthly report (Excel workbook attachment) — optional, everything else keeps working unchanged. */
+  attachments?: EmailAttachment[];
 }
 
 export interface SendEmailResult {
@@ -42,7 +50,7 @@ export interface SendEmailResult {
   error?: string;
 }
 
-export async function sendEmail({ to, subject, html, text }: SendEmailInput): Promise<SendEmailResult> {
+export async function sendEmail({ to, subject, html, text, attachments }: SendEmailInput): Promise<SendEmailResult> {
   if (to.length === 0) return { sent: false, error: 'No recipients' };
 
   const tx = getTransporter();
@@ -58,6 +66,7 @@ export async function sendEmail({ to, subject, html, text }: SendEmailInput): Pr
       subject,
       html,
       text: text ?? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+      attachments,
     });
     return { sent: true };
   } catch (err) {

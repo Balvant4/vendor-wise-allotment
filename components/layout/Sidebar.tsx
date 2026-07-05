@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Upload, Truck, AlertTriangle,
-  BarChart2, Settings, Users, LogOut, Activity, LogIn, X, Package,
+  BarChart2, Settings, Users, LogOut, Activity, LogIn, X, Package, CalendarClock,
 } from 'lucide-react';
 import { useAuth } from '@/features/authentication/components/AuthProvider';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 
 const navItems = [
   { href: '/dashboard',       label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/current-month',   label: 'Current Month', icon: CalendarClock },
   { href: '/vehicles',        label: 'Data Table',   icon: Truck },
   { href: '/alerts',          label: 'Alerts',       icon: AlertTriangle },
   { href: '/upload',          label: 'Upload',       icon: Upload,   roles: ['admin','manager','associate'] },
