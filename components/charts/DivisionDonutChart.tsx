@@ -16,6 +16,34 @@ const tooltip = {
   itemStyle:    { color: '#94a3b8' },
 };
 
+// Renders the count directly on each slice, centered between the inner and
+// outer radius — dark text reads cleanly against the bright slice colors
+// without needing leader lines that could overflow this chart's small
+// (h-52) footprint.
+interface LabelProps {
+  cx: number; cy: number; midAngle: number;
+  innerRadius: number; outerRadius: number; value: number;
+}
+
+function renderSliceLabel({ cx, cy, midAngle, innerRadius, outerRadius, value }: LabelProps) {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) / 2;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <text
+      x={x} y={y}
+      textAnchor="middle"
+      dominantBaseline="central"
+      fill="#0b0f19"
+      fontSize={10}
+      fontWeight={700}
+    >
+      {fmtNum(value)}
+    </text>
+  );
+}
+
 export default function DivisionDonutChart({ data, loading }: Props) {
   if (loading) return <div className="skeleton h-52 rounded-lg w-full" />;
   if (!data.length) return (
@@ -34,6 +62,8 @@ export default function DivisionDonutChart({ data, loading }: Props) {
             innerRadius={50} outerRadius={80}
             paddingAngle={3}
             dataKey="value"
+            label={renderSliceLabel as never}
+            labelLine={false}
           >
             {chartData.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />

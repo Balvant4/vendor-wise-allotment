@@ -144,26 +144,16 @@ export default function CurrentMonthPage() {
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3 mb-5">
-        <KpiCard label="Total Vehicles"     value={kpis?.uniqueVehicles}     icon={Truck}         color="purple" loading={overviewLoading} />
+        <KpiCard label="Total Unique Vehicles"     value={kpis?.uniqueVehicles}     icon={Truck}         color="purple" loading={overviewLoading} />
         <KpiCard label="Total Containers"   value={insights?.totalContainers} icon={Boxes}         color="blue"   loading={insightsLoading} />
         <KpiCard label="Total Trips"        value={kpis?.total}               icon={Package}       color="gold"   loading={overviewLoading} />
         <KpiCard label="Active Transporters" value={kpis?.uniqueTransporters} icon={Users2}        color="cyan"   loading={overviewLoading} />
         <KpiCard label="Total Divisions"    value={kpis?.uniqueDivisions}     icon={Building2}     color="green"  loading={overviewLoading} />
         <KpiCard label="Total Customers"    value={insights?.totalCustomers}  icon={Users2}        color="purple" loading={insightsLoading} />
-        <KpiCard label="Total Documents"    value={insights?.totalDocuments}  icon={FileSpreadsheet} color="blue" loading={insightsLoading} />
-        <KpiCard label="Completed"          value={insights?.completed}       icon={CheckCircle2}  color="green"  loading={insightsLoading} sub={`${pct(insights?.completionRate)} of total`} />
-        <KpiCard label="Pending"            value={insights?.pending}         icon={Hourglass}     color="gold"   loading={insightsLoading} />
+  
         <KpiCard label="Delayed (>25H)"      value={kpis?.over25}              icon={AlertTriangle} color="red"    loading={overviewLoading} sub={`${pct(kpis?.violationRate)} rate`} />
         <KpiCard label="Avg Vehicles/Day"    value={avgPerDay}                 icon={TrendingUp}    color="cyan"   loading={overviewLoading} decimals={1} />
-        <KpiCard
-          label="Vs Last Month"
-          value={growthPct ?? undefined}
-          icon={growthPct !== null && growthPct < 0 ? TrendingDown : TrendingUp}
-          color={growthPct !== null && growthPct < 0 ? 'red' : 'green'}
-          loading={overviewLoading}
-          decimals={1}
-          formatter={(n) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`}
-        />
+        
       </div>
 
       {/* Charts row */}
@@ -181,21 +171,7 @@ export default function CurrentMonthPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
-        <div className="panel-card">
-          <div className="mb-3 text-xs font-bold text-text">Transporter-wise Vehicles</div>
-          <TopTransportersChart data={byTransporter} loading={overviewLoading} />
-        </div>
-        <BreakdownBarList
-          icon={Users2}
-          iconColorClass="text-blue"
-          barColorClass="bg-blue"
-          title="Customer-wise Vehicles"
-          items={topCustomerItems}
-          loading={insightsLoading}
-          emptyMessage="No customer data for this month yet."
-        />
-      </div>
+      
 
       {/* Monthly performance */}
       <div className="panel-card mb-4">
@@ -246,81 +222,13 @@ export default function CurrentMonthPage() {
             </div>
           </div>
         </div>
-        <BreakdownBarList
-          icon={Package}
-          iconColorClass="text-purple"
-          barColorClass="bg-purple"
-          title="Top Destinations"
-          items={topDestinationItems}
-          loading={insightsLoading}
-          emptyMessage="No destination data for this month yet."
-        />
+        
       </div>
 
       {/* Data table */}
       <div className="panel-card min-w-0 !p-0 overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
           <h2 className="text-sm font-bold text-text mr-1 shrink-0">Current Month Records</h2>
-
-          <div className="relative">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted2 pointer-events-none" />
-            <input
-              value={localSearch}
-              onChange={(e) => { setLocalSearch(e.target.value); setPage(1); }}
-              placeholder="Vehicle, container, doc no…"
-              className="h-7 w-40 sm:w-48 rounded-lg border border-line bg-panel2 pl-7 pr-2 text-xs
-                         text-text placeholder:text-muted2 outline-none focus:border-gold
-                         focus:ring-1 focus:ring-gold/10 transition-all"
-            />
-          </div>
-
-          <select
-            value={division}
-            onChange={(e) => { setDivision(e.target.value); setPage(1); }}
-            className="h-7 rounded-lg border border-line bg-panel2 px-2 text-xs text-text outline-none focus:border-gold"
-          >
-            <option value="">All Divisions</option>
-            {(filterOptions?.divisions ?? []).map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-
-          <select
-            value={transporter}
-            onChange={(e) => { setTransporter(e.target.value); setPage(1); }}
-            className="h-7 rounded-lg border border-line bg-panel2 px-2 text-xs text-text outline-none focus:border-gold max-w-[10rem]"
-          >
-            <option value="">All Transporters</option>
-            {(filterOptions?.transporters ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-
-          <input
-            value={customer}
-            onChange={(e) => { setCustomer(e.target.value); setPage(1); }}
-            placeholder="Customer…"
-            className="h-7 w-32 rounded-lg border border-line bg-panel2 px-2 text-xs text-text
-                       placeholder:text-muted2 outline-none focus:border-gold"
-          />
-
-          <input
-            value={container}
-            onChange={(e) => { setContainer(e.target.value); setPage(1); }}
-            placeholder="Container…"
-            className="h-7 w-32 rounded-lg border border-line bg-panel2 px-2 text-xs text-text
-                       placeholder:text-muted2 outline-none focus:border-gold"
-          />
-
-          <div className="flex items-center gap-1 rounded-lg border border-line bg-panel2 p-0.5">
-            {[{ label: 'All', value: '' }, { label: '>25H', value: 'true' }, { label: 'Normal', value: 'false' }].map(({ label: l, value }) => (
-              <button
-                key={value}
-                onClick={() => { setStatus(value as '' | 'true' | 'false'); setPage(1); }}
-                className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
-                  status === value ? 'bg-gold text-black' : 'text-muted hover:text-text'
-                }`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
 
           <div className="ml-auto">
             <CurrentMonthExportBar filters={{ ...queryFilters, sortKey, sortDir }} rows={records} kpis={kpisForExport} />
