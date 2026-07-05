@@ -88,7 +88,7 @@ export function useAlertsInsights(data: VehicleRecord[]): UseAlertsInsightsResul
       entries.sort((a, b) => b[1].count - a[1].count);
 
     return {
-      byTransporter: sortByCount([...byTransporter.entries()]).slice(0, 6),
+      byTransporter: sortByCount([...byTransporter.entries()]),
       byWarehouse: sortByCount([...byWarehouse.entries()]),
       repeatVehicles: [...byVehicle.entries()]
         .filter(([, v]) => v.count > 1)

@@ -40,6 +40,7 @@ function AlertsInsightPanels({ insights, loading }: Props) {
           title="By Transporter"
           items={transporterItems}
           loading={loading}
+          listHeightClass="h-64"
         />
         <BreakdownBarList
           icon={Building2}
@@ -48,6 +49,7 @@ function AlertsInsightPanels({ insights, loading }: Props) {
           title="By Warehouse"
           items={warehouseItems}
           loading={loading}
+          listHeightClass="h-64"
         />
         <BreakdownBarList
           icon={MessageSquareWarning}
@@ -56,6 +58,7 @@ function AlertsInsightPanels({ insights, loading }: Props) {
           title="Detention Reasons"
           items={reasonItems}
           loading={loading}
+          listHeightClass="h-64"
         />
       </div>
 
