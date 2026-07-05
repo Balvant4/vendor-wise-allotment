@@ -1,4 +1,5 @@
 import { type LucideIcon } from 'lucide-react';
+import { memo } from 'react';
 import { cn, fmtNum } from '@/lib/utils';
 import CountUpNumber from './CountUpNumber';
 
@@ -20,10 +21,15 @@ interface KpiCardProps {
   icon?: LucideIcon;
   color?: ColorKey;
   loading?: boolean;
+  /** Defaults to fmtNum — pass fmtHours etc. for non-count metrics. */
+  formatter?: (n: number) => string;
+  /** Decimal places CountUpNumber should animate/round to. Defaults to 0. */
+  decimals?: number;
 }
 
-export default function KpiCard({
+function KpiCard({
   label, value, sub, icon: Icon, color = 'gold', loading,
+  formatter = fmtNum as (n: number) => string, decimals = 0,
 }: KpiCardProps) {
   const c = colorMap[color];
 
@@ -49,9 +55,11 @@ export default function KpiCard({
         )}
       </div>
       <div className={cn('text-2xl font-bold font-mono', c.text)}>
-        <CountUpNumber value={value} formatter={fmtNum as (n: number) => string} />
+        <CountUpNumber value={value} formatter={formatter} decimals={decimals} />
       </div>
       {sub && <div className="mt-1 text-[10px] text-muted">{sub}</div>}
     </div>
   );
 }
+
+export default memo(KpiCard);
