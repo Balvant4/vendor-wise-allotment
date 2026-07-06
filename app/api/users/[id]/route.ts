@@ -3,11 +3,13 @@ import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import User from '@/models/User';
 import { updateUserSchema } from '@/server/validations/auth.validation';
+import { requireValidObjectId } from '@/lib/mongo';
 import mongoose from 'mongoose';
 
 // PATCH /api/users/:id — gated: admin only
 export const PATCH = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
   const decoded = requireAuth(req, 'MANAGE_USERS');
+  requireValidObjectId(params.id, 'user id');
 
   await connectDB();
   const body = await req.json();
@@ -27,6 +29,7 @@ export const PATCH = withErrorHandler(async (req: Request, { params }: { params:
 // DELETE /api/users/:id — gated: admin only, soft delete
 export const DELETE = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
   const decoded = requireAuth(req, 'MANAGE_USERS');
+  requireValidObjectId(params.id, 'user id');
   if (decoded.id === params.id) throw new AppError('You cannot delete your own account', 400);
 
   await connectDB();

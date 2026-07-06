@@ -4,10 +4,12 @@ import connectDB from '@/database/connection';
 import Upload from '@/models/Upload';
 import VehicleRecord from '@/models/VehicleRecord';
 import TransporterMaster from '@/models/TransporterMaster';
+import { requireValidObjectId } from '@/lib/mongo';
 
 // DELETE /api/uploads/:id — gated: must be admin (permanently deletes data)
 export const DELETE = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
   requireAuth(req, 'DELETE_UPLOADS');
+  requireValidObjectId(params.id, 'upload id');
 
   await connectDB();
   const upload = await Upload.findById(params.id);
@@ -54,6 +56,7 @@ export const DELETE = withErrorHandler(async (req: Request, { params }: { params
 // GET /api/uploads/:id — public read access
 export const GET = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
   optionalAuth(req);
+  requireValidObjectId(params.id, 'upload id');
 
   await connectDB();
   const upload = await Upload.findById(params.id).populate('createdBy', 'name email').lean();

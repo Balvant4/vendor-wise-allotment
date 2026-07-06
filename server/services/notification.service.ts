@@ -3,7 +3,7 @@ import Notification, { type NotificationType, type NotificationSeverity } from '
 import User from '@/models/User';
 import Upload from '@/models/Upload';
 import { sendEmail } from '@/lib/email';
-import { fmtHours } from '@/lib/utils';
+import { fmtHours, escapeHtml } from '@/lib/utils';
 import type { UserRole } from '@/types';
 import mongoose from 'mongoose';
 
@@ -66,8 +66,8 @@ async function createAndEmail(input: CreateInput): Promise<void> {
       subject: `[${input.severity.toUpperCase()}] ${input.title}`,
       html: `
         <div style="font-family: sans-serif; max-width: 560px;">
-          <h2 style="margin-bottom: 4px;">${input.title}</h2>
-          <p style="color: #444;">${input.message}</p>
+          <h2 style="margin-bottom: 4px;">${escapeHtml(input.title)}</h2>
+          <p style="color: #444;">${escapeHtml(input.message)}</p>
           <p style="margin-top: 24px;">
             <a href="${APP_URL}/alerts" style="background:#111;color:#fff;padding:10px 16px;
                border-radius:6px;text-decoration:none;font-size:14px;">

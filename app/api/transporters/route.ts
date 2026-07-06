@@ -3,7 +3,9 @@ import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import TransporterMaster from '@/models/TransporterMaster';
 import { remapTransporter } from '@/features/uploads/services/upload.service';
-import { escapeRegex } from '@/lib/utils';
+import { buildSearchMatch } from '@/lib/utils';
+import { parsePagination, toPaginationMeta } from '@/lib/pagination';
+import { createTransporterSchema } from '@/server/validations/transporter.validation';
 import mongoose from 'mongoose';
 
 // GET /api/transporters — gated: this is admin/manager configuration data,
@@ -15,23 +17,18 @@ export const GET = withErrorHandler(async (req: Request) => {
 
   await connectDB();
 
-  const url    = new URL(req.url);
-  const page   = Math.max(1, Number(url.searchParams.get('page'))  || 1);
-  const limit  = Math.min(100, Number(url.searchParams.get('limit')) || 50);
-  const skip   = (page - 1) * limit;
+  const url = new URL(req.url);
+  const pagination = parsePagination(url, { defaultLimit: 50, maxLimit: 100 });
+  const { page, limit, skip } = pagination;
+
   const search = url.searchParams.get('search') ?? '';
   const isFix  = url.searchParams.get('isFix');
   const needsReview = url.searchParams.get('needsReview');
   const deletedOnly  = url.searchParams.get('deletedOnly') === 'true';
 
   const filter: Record<string, unknown> = {};
-  if (search) {
-    const safe = escapeRegex(search);
-    filter.$or = [
-      { originalName: new RegExp(safe, 'i') },
-      { standardName: new RegExp(safe, 'i') },
-    ];
-  }
+  const searchMatch = buildSearchMatch(search, ['originalName', 'standardName'], []);
+  if (searchMatch) filter.$or = searchMatch.$or;
   if (isFix === 'true')  filter.isFix = true;
   if (isFix === 'false') filter.isFix = false;
   if (needsReview === 'true') filter.needsReview = true;
@@ -49,7 +46,7 @@ export const GET = withErrorHandler(async (req: Request) => {
         .toArray(),
       TransporterMaster.collection.countDocuments(rawFilter),
     ]);
-    return apiPaginated(data, { total, page, limit, totalPages: Math.ceil(total / limit) });
+    return apiPaginated(data, toPaginationMeta(total, pagination));
   }
 
   const [data, total] = await Promise.all([
@@ -57,7 +54,7 @@ export const GET = withErrorHandler(async (req: Request) => {
     TransporterMaster.countDocuments(filter),
   ]);
 
-  return apiPaginated(data, { total, page, limit, totalPages: Math.ceil(total / limit) });
+  return apiPaginated(data, toPaginationMeta(total, pagination));
 });
 
 // POST /api/transporters — gated, add new mapping + auto remap existing records
@@ -67,11 +64,11 @@ export const POST = withErrorHandler(async (req: Request) => {
   await connectDB();
 
   const body = await req.json();
-  const { originalName, standardName, isFix } = body;
-
-  if (!originalName || !standardName) {
-    throw new AppError('Original name and standard name are required', 400, 'VALIDATION_ERROR');
+  const parsed = createTransporterSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new AppError(parsed.error.errors[0].message, 400, 'VALIDATION_ERROR');
   }
+  const { originalName, standardName, isFix } = parsed.data;
 
   // Check duplicate
   const exists = await TransporterMaster.findOne({

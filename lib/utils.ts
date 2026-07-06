@@ -75,6 +75,17 @@ export const getErrorMessage = (err: unknown): string => {
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
+// Escapes HTML-significant characters before interpolating any value into
+// an HTML email/template string. Several fields that end up in outbound
+// emails (vehicle numbers, container numbers, transporter names, upload
+// filenames) originate from user-uploaded spreadsheet cells or user input —
+// without this, a crafted cell value like `<img src=x onerror=...>` would
+// be injected verbatim into an HTML email opened by an admin/manager.
+export const escapeHtml = (value: unknown): string =>
+  String(value ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+  ));
+
 // Escapes regex special characters so user-typed search text (which may
 // contain parentheses, dots, etc. — e.g. a container number) can be safely
 // passed to `new RegExp()` without throwing on invalid patterns or opening

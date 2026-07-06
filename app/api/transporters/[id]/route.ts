@@ -3,16 +3,23 @@ import { requireAuth } from '@/lib/auth';
 import connectDB from '@/database/connection';
 import TransporterMaster from '@/models/TransporterMaster';
 import { remapTransporter } from '@/features/uploads/services/upload.service';
+import { requireValidObjectId } from '@/lib/mongo';
+import { updateTransporterSchema } from '@/server/validations/transporter.validation';
 import mongoose from 'mongoose';
 
 // PATCH /api/transporters/:id — gated, edit + auto remap
 export const PATCH = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
   const decoded = requireAuth(req, 'VIEW_USERS');
+  requireValidObjectId(params.id, 'transporter id');
 
   await connectDB();
 
   const body = await req.json();
-  const { originalName, standardName, isFix, isActive } = body;
+  const parsed = updateTransporterSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new AppError(parsed.error.errors[0].message, 400, 'VALIDATION_ERROR');
+  }
+  const { originalName, standardName, isFix, isActive } = parsed.data;
 
   // Check conflict
   if (originalName) {
@@ -58,6 +65,7 @@ export const PATCH = withErrorHandler(async (req: Request, { params }: { params:
 // DELETE /api/transporters/:id — gated
 export const DELETE = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
   const decoded = requireAuth(req, 'VIEW_USERS');
+  requireValidObjectId(params.id, 'transporter id');
 
   await connectDB();
 
@@ -75,6 +83,7 @@ export const DELETE = withErrorHandler(async (req: Request, { params }: { params
 // PUT /api/transporters/:id — gated, restore a soft-deleted mapping
 export const PUT = withErrorHandler(async (req: Request, { params }: { params: { id: string } }) => {
   const decoded = requireAuth(req, 'VIEW_USERS');
+  requireValidObjectId(params.id, 'transporter id');
 
   await connectDB();
 
